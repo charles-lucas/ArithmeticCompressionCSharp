@@ -1,0 +1,185 @@
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace ArithmeticCoder
+{
+    [JsonConverter(typeof(ContextKeyConverter))]
+    public class ContextKey : IEquatable<ContextKey>
+    {
+        public ContextKey(UInt32 maxLength)
+        {
+            _maxLength = maxLength;
+            _key = new List<byte>();
+        }
+
+        public ContextKey(UInt32 maxLength, byte key)
+        {
+            _maxLength = maxLength;
+            _key = new List<byte>();
+            _key.Add(key);
+        }
+
+        public ContextKey(UInt32 maxLength, string[] keys)
+        {
+            _maxLength = maxLength;
+            _key = new List<byte>();
+            foreach(string keyPart in keys)
+            {
+                _key.Add(byte.Parse(keyPart));
+            }
+           
+        }
+
+        public ContextKey(ContextKey conKey)
+        {
+            _maxLength = conKey.MaxLength;
+            _key = new List<byte>();
+            foreach (byte bite in conKey.Key)
+            {
+                _key.Add(bite);
+            }
+        }
+
+        public ContextKey(ContextKey conKey, byte symbol)
+        {
+            _maxLength = conKey.MaxLength;
+            _key = new List<byte>();
+            foreach (byte bite in conKey.Key)
+            {
+                _key.Add(bite);
+            }
+            _key.Add(symbol);
+            while (_key.Count > _maxLength)
+            {
+                _key.RemoveAt(0);
+            }
+        }
+
+        public ContextKey GetLesser()
+        {
+            ContextKey result = new ContextKey(this);
+            result.Key.RemoveAt(0);
+            return result;
+        }
+
+        public bool Empty()
+        {
+            return _key.Count == 0;
+        }
+
+        [JsonInclude]
+        public UInt32 MaxLength
+        {
+            get => _maxLength;
+            set
+            {
+                _maxLength = value;
+            }
+        }
+
+        [JsonInclude]
+        public List<byte> Key
+        {
+            get
+            {
+                return _key;
+            }
+        }
+
+        public override bool Equals(object? obj) => Equals(obj as ContextKey);
+
+        public bool Equals(ContextKey? other)
+        {
+            bool result = false;
+            bool allElementsCompareFail = false;
+
+            if (_key.Count == other.Key.Count)
+            {
+                for (int i = 0; i < _key.Count; i++)
+                {
+                    if (_key[i] != other.Key[i])
+                    {
+                        allElementsCompareFail = true;
+                    }
+                }
+                result = !allElementsCompareFail;
+            }
+
+            return result;
+        }
+
+        public override int GetHashCode()
+        {
+            int result = 0;
+            int shift = 0;
+            int mask = 0x0FFFFFFF;
+            if (_key.Count <= 4)
+            {
+                foreach (byte bite in _key)
+                {
+                    result = (result << shift) | bite;
+                    shift += 8;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    result = (result << shift) | _key[i];
+                    shift += 8;
+                }
+                for (int i = 4; i < _key.Count; i++)
+                {
+                    result += _key[i];
+                }
+                result = (result & mask) | (_key.Count << 28);
+            }
+
+            return result;
+        }
+
+        public override string ToString()
+        {
+            string result = string.Empty;
+            bool first = true;
+
+            foreach(byte bite in _key)
+            {
+                if(!first && _maxLength > 1)
+                {
+                    result += " ";
+                }
+                else
+                {
+                    first = false;
+                }
+                result += String.Format("{0}", bite);
+            }
+
+            return result;
+        }
+
+        public static ContextKey Parse(string? value)
+        {
+            ContextKey result;
+
+            if (value != null)
+            {
+                string[] splitValue = value.Split(':');
+                UInt32 maxLength = UInt32.Parse(splitValue[0]);
+                string[] keys = splitValue[1].Split(" ");
+
+                result = new ContextKey(maxLength, keys);
+            }
+            else
+            {
+                result = new ContextKey(0);
+            }
+                return result;
+        }
+
+        private List<byte> _key;
+        private UInt32 _maxLength;
+
+}
+}
