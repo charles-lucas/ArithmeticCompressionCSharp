@@ -123,7 +123,17 @@ namespace ArithmeticCoder
         }
 
         [JsonInclude]
-        public List<Stat> Stats => _stats; 
+        public List<Stat> Stats
+        {  
+            get
+            {
+                return _stats;
+            }
+            set
+            {
+                _stats = value;
+            }
+        }
 
         private void SwapStats(Int32 index1, Int32 index2)
         {

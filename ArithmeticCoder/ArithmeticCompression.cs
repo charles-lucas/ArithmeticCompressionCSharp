@@ -14,6 +14,21 @@ namespace ArithmeticCoder
             _model = model;
         }
 
+        public ArithmeticCompression(string modelFile)
+        {
+            string modelString = System.IO.File.ReadAllText(modelFile);
+            ModelOrderN? model = JsonSerializer.Deserialize<ModelOrderN>(modelString);
+            if (model != null)
+            {
+                _model = model;
+            }
+            else
+            {
+                _model = new ModelOrderN(0);
+            }
+
+        }
+
         public void Write(BinaryReader input, BinaryWriter output)
         {
             Int32 character;
@@ -120,6 +135,8 @@ namespace ArithmeticCoder
 
             return json;
         }
+
+        public UInt32 MaxOrder => _model.MaxOrder;
 
         private ModelOrderN _model;
         private Coder? _coder;

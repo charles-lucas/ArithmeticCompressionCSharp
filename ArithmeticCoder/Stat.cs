@@ -41,10 +41,30 @@ namespace ArithmeticCoder
         public override int GetHashCode() => _symbol;
 
         [JsonInclude]
-        public byte Symbol => _symbol;
+        public byte Symbol
+        {
+            get
+            {
+                return _symbol;
+            }
+            set
+            {
+                _symbol = value;
+            }
+        }
 
         [JsonInclude]
-        public UInt16 Count => _count;
+        public UInt16 Count
+        {
+            get
+            {
+                return _count;
+            }
+            set
+            {
+                _count = value;
+            }
+        }
 
         private byte _symbol;
         private UInt16 _count;

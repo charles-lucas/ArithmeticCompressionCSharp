@@ -145,6 +145,11 @@ namespace ArithmeticCoder
                 {
                     _contexts[_contextKey].Update((byte)character);
                 }
+                // Set context to max context
+                if (_escapedContexts.Count != 0)
+                {
+                    _contextKey = _escapedContexts.First();
+                }
                 _escapedContexts.Clear();
             }
         }
@@ -163,10 +168,30 @@ namespace ArithmeticCoder
         }
 
         [JsonInclude]
-        public UInt32 MaxOrder => _maxOrder;
+        public UInt32 MaxOrder
+        {
+            get
+            {
+                return _maxOrder;
+            }
+            set
+            {
+                _maxOrder = value;
+            }
+        }
 
         [JsonInclude]
-        public Dictionary<ContextKey, Context> Contexts => _contexts;
+        public Dictionary<ContextKey, Context> Contexts
+        {
+            get
+            {
+                return _contexts;
+            }
+            set
+            {
+                _contexts = value;
+            }
+        }
 
         private Dictionary<ContextKey, Context> _contexts;
         private List<ContextKey> _escapedContexts;

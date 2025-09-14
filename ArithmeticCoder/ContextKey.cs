@@ -55,6 +55,19 @@ namespace ArithmeticCoder
             }
         }
 
+        public ContextKey(string[] keys)
+        {
+            //int part;
+            _key = new List<byte>();
+            foreach (string keypart in keys)
+            {
+                if(int.TryParse(keypart, out int part))
+                {
+                    _key.Add((byte)part);
+                }
+            }
+        }
+
         public ContextKey GetLesser()
         {
             ContextKey result = new ContextKey(this);
@@ -110,6 +123,12 @@ namespace ArithmeticCoder
 
         public override int GetHashCode()
         {
+            //return PolynomialHash(2147483647, 5);
+            return Djb2Hash();
+        }
+
+        private int Hash1()
+        {
             int result = 0;
             int shift = 0;
             int mask = 0x0FFFFFFF;
@@ -136,6 +155,31 @@ namespace ArithmeticCoder
             }
 
             return result;
+        }
+
+        private int PolynomialHash(int p, int m)
+        {
+            int hash = 5381;
+            int pPow = 1;
+            foreach (byte bite in _key)
+            {
+                hash = (hash + (bite - 'a' + 1) * pPow) % m;
+                pPow  = (pPow * p) % m;
+            }
+
+            return hash;
+        }
+
+        private int Djb2Hash()
+        {
+            int hash = 5381;
+
+            foreach(byte bite in _key)
+            {
+                hash = ((hash << 5) + hash) + bite;
+            }
+
+            return hash;
         }
 
         public override string ToString()
@@ -165,11 +209,9 @@ namespace ArithmeticCoder
 
             if (value != null)
             {
-                string[] splitValue = value.Split(':');
-                UInt32 maxLength = UInt32.Parse(splitValue[0]);
-                string[] keys = splitValue[1].Split(" ");
-
-                result = new ContextKey(maxLength, keys);
+                string[] keys = value.Split(" ");
+                
+                result = new ContextKey(keys);
             }
             else
             {
