@@ -28,11 +28,11 @@
             {
                 if ((_high & 0x8000) == (_low & 0x8000))
                 {
-                    output = (_high & 0x8000) != 0 ? true : false;
+                    output = (_high & 0x8000) != 0;
                     _output.WriteBit(output);
                     while (_underflowBits > 0)
                     {
-                        output = (~_high & 0x8000) != 0 ? true : false;
+                        output = (~_high & 0x8000) != 0;
                         _output.WriteBit(output);
                         _underflowBits--;
                     }
@@ -81,6 +81,17 @@
                 _code <<= 1;
                 _code += (UInt16)(_input.ReadBit() ? 1 : 0);
             }
+        }
+
+        public int GetCurrentCount(Symbol symbol)
+        {
+            Int64 range;
+            Int16 count;
+
+            range = (_high - _low) + 1;
+            count = (Int16)( ( ( ( _code - _low ) + 1 ) * symbol.Scale - 1 ) / range );
+
+            return count;
         }
 
         public void AddInput(Stream stream)

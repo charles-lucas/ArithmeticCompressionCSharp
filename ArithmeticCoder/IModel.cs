@@ -8,5 +8,6 @@
         public void Flush();
         public string ToJson();
         public void FromJson(string json);
+        public void SetMaxOrder();
     }
 }

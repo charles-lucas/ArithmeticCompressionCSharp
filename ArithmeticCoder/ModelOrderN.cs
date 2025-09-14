@@ -90,6 +90,14 @@ namespace ArithmeticCoder
 
         }
 
+        public void SetMaxOrder()
+        {
+            foreach (ContextKey key in _contexts.Keys)
+            {
+                key.MaxLength = _maxOrder;
+            }
+        }
+
         private void DecrementOrder()
         {
             if (_order == Order.Model)

@@ -21,12 +21,12 @@ namespace ArithmeticCoder
             if (model != null)
             {
                 _model = model;
+                _model.SetMaxOrder();
             }
             else
             {
                 _model = new ModelOrderN(0);
             }
-
         }
 
         public void Write(BinaryReader input, BinaryWriter output)

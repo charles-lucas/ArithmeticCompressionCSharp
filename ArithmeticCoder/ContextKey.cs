@@ -59,6 +59,7 @@ namespace ArithmeticCoder
         {
             //int part;
             _key = new List<byte>();
+            _maxLength = (UInt32)keys.Length;
             foreach (string keypart in keys)
             {
                 if(int.TryParse(keypart, out int part))
