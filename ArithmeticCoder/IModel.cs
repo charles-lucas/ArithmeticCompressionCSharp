@@ -6,8 +6,7 @@
         public void Update(Int32 bite);
         public void AddSymbol(Int32 bite);
         public void Flush();
-        public string ToJson();
-        public void FromJson(string json);
+        public void Export(Stream outputStream);
         public void SetMaxOrder();
     }
 }

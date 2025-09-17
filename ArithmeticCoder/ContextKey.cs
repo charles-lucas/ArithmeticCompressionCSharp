@@ -3,9 +3,14 @@ using System.Text.Json.Serialization;
 
 namespace ArithmeticCoder
 {
-    [JsonConverter(typeof(ContextKeyConverter))]
     public class ContextKey : IEquatable<ContextKey>
     {
+        public ContextKey()
+        {
+            _maxLength = 0;
+            _key = new List<byte>();
+        }
+
         public ContextKey(UInt32 maxLength)
         {
             _maxLength = maxLength;
@@ -97,6 +102,10 @@ namespace ArithmeticCoder
             get
             {
                 return _key;
+            }
+            SetMaxOrder
+            {
+                _key = value;
             }
         }
 

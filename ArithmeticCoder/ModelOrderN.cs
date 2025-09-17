@@ -5,6 +5,29 @@ namespace ArithmeticCoder
 {
     public class ModelOrderN : IModel
     {
+
+        public ModelOrderN()
+        {
+            _maxOrder = 0;
+            _contexts = new Dictionary<ContextKey, Context>();
+            _escapedContexts = new List<ContextKey>();
+            _allSymbolContext = new Context(Order.AllSymbols);
+            _controlContext = new Context(Order.Control);
+            _scoreboard = new byte[256];
+            _totals = new UInt16[16];
+            _order = Order.Model;
+            _contextKey = new ContextKey(_maxOrder);
+            _lastContext = _contextKey;
+
+            _controlContext.Update(-Constants.FLUSH);
+            _controlContext.Update(-Constants.DONE);
+
+            for (int bite = 0x0; bite <= 256; bite++)
+            {
+                _allSymbolContext.Update((byte)bite);
+            }
+        }
+
         public ModelOrderN(UInt32 maxOrder)
         {
             Context context0 = new Context();
@@ -17,6 +40,7 @@ namespace ArithmeticCoder
             _totals = new UInt16[16];
             _order = Order.Model;
             _contextKey = new ContextKey(maxOrder);
+            _lastContext = _contextKey;
 
             _contexts.Add(_contextKey, context0);
 
@@ -76,18 +100,23 @@ namespace ArithmeticCoder
             return true;
         }
 
-        public string ToJson()
+        public void Export(Stream output)
         {
             string json;
-            JsonSerializerOptions options = new JsonSerializerOptions{ WriteIndented = true };
-            json = JsonSerializer.Serialize(_contexts, options);
+            StreamWriter outStream = new StreamWriter(output);
+            JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = false};
 
-            return json;
-        }
+            json = JsonSerializer.Serialize(this, options);
+            outStream.WriteLine(json);
 
-        public void FromJson(string json)
-        {
-
+            foreach(var context in _contexts)
+            {
+                json = JsonSerializer.Serialize(context.Key, options);
+                outStream.WriteLine(json);
+                json = JsonSerializer.Serialize(context.Value, options);
+                outStream.WriteLine(json);
+            }
+            outStream.Flush();
         }
 
         public void SetMaxOrder()
@@ -135,10 +164,21 @@ namespace ArithmeticCoder
 
         public void Flush()
         {
-            foreach(Context context in _contexts.Values)
+            Flush(_contextKey);
+        }
+
+        public void Flush(ContextKey contextKey)
+        {
+            ContextKey key;
+            foreach(var stat in _contexts[contextKey].Stats)
             {
-                context.Rescale();
+                key = new ContainsKey(contextKey, stat.Symbol);
+                if(_contexts.ContainsKey(key))
+                {
+                    Flush(key);
+                }
             }
+            _contexts[contextKey].Rescale();
         }
 
         public void Update(Int32 character)
@@ -175,6 +215,40 @@ namespace ArithmeticCoder
             }
         }
 
+        public void GetSymbolScale(Symbol symbol)
+        {
+            Context table = _contexts[_contextKey];
+
+            _totals = table.Totalize(_scoreboard);
+            symbol.Scale = _totals[0];
+        }
+
+        public Int32 ConvertSymbolToInt(Symbol symbol)
+        {
+            Int32 character;
+            Context table = _contexts[_contextKey];
+
+            for(character = 0; character < _totals[character]; character++)
+            {
+            }
+
+            symbol.HighCount = _totals[character - 1];
+            symbol.LowCount = _totals[character];
+
+            if(character == 1)
+            {
+                DecrementOrder();
+                return Constants.ESCAPE;
+            }
+
+            if(table.Order == Order.Control)
+            {
+                return -(table.Stats[(byte)(character - 2)].Symbol);
+            }
+
+            return table.Stats[(byte)(character - 2)].Symbol;
+        }
+
         [JsonInclude]
         public UInt32 MaxOrder
         {
@@ -189,6 +263,19 @@ namespace ArithmeticCoder
         }
 
         [JsonInclude]
+        public ContextKey LastContext
+        {
+            get
+            {
+                return _lastContext;
+            }
+            set
+            {
+                _lastContext = value;
+                _contextKey = value;
+            }
+
+        [JsonIgnore]
         public Dictionary<ContextKey, Context> Contexts
         {
             get
@@ -210,5 +297,6 @@ namespace ArithmeticCoder
         private Order _order;
         private ContextKey _contextKey;
         private UInt32 _maxOrder;
+        private ContextKey _lastContext;
     }
 }

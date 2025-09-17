@@ -4,6 +4,60 @@ namespace ArithmeticCoder
 {
     public class ArithmeticCompression
     {
+        public ArithmeticCompression(Stream modelStream)
+        {
+            StreamReader inputReader = new StreamReader(modelStream);
+            string? json;
+            ModelOrderN model;
+            ContextKey? contextKey;
+            Context? context;
+            bool done = false;
+            
+            _model = new ModelOrderN(0);
+
+            json = inputReader.ReadLine();
+            if(json != null)
+            {
+                model = JsonSerializer.Deserialize<ModelOrderN>(json);
+                if(model != null)
+                {
+                    _model = model;
+                }
+            }
+
+            while(!done)
+            {
+                //Process ContextKey
+                json = inputReader.ReadLine();
+                if(json != null)
+                {
+                    contextKey = JsonSerializer.Deserialize<ContextKey>(json);
+                }
+                else
+                {
+                    contextKey = null;
+                    done = true;
+                }
+
+                //Proicess Context
+                json = inputReader.ReadLine();
+                if(json != null)
+                {
+                    context = JsonSerializer.Deserialize<Context>(json);
+                }
+                else
+                {
+                    context = null;
+                    done = true;
+                }
+
+                if(contextKey != null && context != null)
+                {
+                    _model.Contexts.Add(contextKey, context);
+                }
+            }
+        }
+
         public ArithmeticCompression(UInt32 maxOrder)
         {
             _model = new ModelOrderN(maxOrder);
@@ -14,19 +68,11 @@ namespace ArithmeticCoder
             _model = model;
         }
 
-        public ArithmeticCompression(string modelFile)
+        public ArithmeticCompression(Stream input, UInt32 maxOrder)
         {
-            string modelString = System.IO.File.ReadAllText(modelFile);
-            ModelOrderN? model = JsonSerializer.Deserialize<ModelOrderN>(modelString);
-            if (model != null)
-            {
-                _model = model;
-                _model.SetMaxOrder();
-            }
-            else
-            {
-                _model = new ModelOrderN(0);
-            }
+            BinaryReader reader = new BinararyReader(input);
+            _model = new ModelOrderN(maxOrder);
+            LoadModel(reader);
         }
 
         public void Write(BinaryReader input, BinaryWriter output)
@@ -53,6 +99,7 @@ namespace ArithmeticCoder
                     }
                     catch (EndOfStreamException)
                     {
+                        _model.SetLastContext();
                         character = Constants.DONE;
                     }
                 }
@@ -86,6 +133,38 @@ namespace ArithmeticCoder
         public void Read(BinaryReader input, BinaryWriter output)
         {
 
+        }
+
+        public LoadModel(BinararyReader reader)
+        {
+            Symbol symbol = new Symbol();
+            Coder coder = new Coder(false, reader, null);
+            Int32 character;
+            Int32 count;
+
+            while(true)
+            {
+                done
+                {
+                    _model.GetSymbolScale();
+                    count = coder.GetCurrentCount(symbol);
+                    character = _model.ConvertSymbolToInt(symbol);
+                    coder.RemoveSymbol(symbol);
+                }while(character == Constants.ESCAPE);
+
+                if(character == Constants.DONE)
+                {
+                    break;
+                }
+
+                if(character == Constants.FLUSH)
+                {
+                    _model.Flush();
+                }
+                
+                _model.Update(character);
+                _model.AddSymbol(character);
+            }
         }
 
         public void Write(byte[] bites)
@@ -127,13 +206,9 @@ namespace ArithmeticCoder
             return result;
         }
 
-        public string ExportModel()
+        public void ExportModel(Stream output)
         {
-            string json;
-            JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = true};
-            json = JsonSerializer.Serialize(_model, options);
-
-            return json;
+           _model.Export(output);
         }
 
         public UInt32 MaxOrder => _model.MaxOrder;

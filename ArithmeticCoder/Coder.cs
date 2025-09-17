@@ -2,10 +2,18 @@
 {
     internal class Coder
     {
-        public Coder(bool encode, BinaryReader input, BinaryWriter output)
+        public Coder(bool encode, BinaryReader input, BinaryWriter? output)
         {
             _input = new BitStreamReader(input);
-            _output = new BitStreamWriter(output);
+
+            if(output)
+            {
+                _output = new BitStreamWriter(output);
+            }
+            else
+            {
+                _output = null;
+            }
 
             if (encode)
             {
@@ -29,11 +37,11 @@
                 if ((_high & 0x8000) == (_low & 0x8000))
                 {
                     output = (_high & 0x8000) != 0;
-                    _output.WriteBit(output);
+                    _output?.WriteBit(output);
                     while (_underflowBits > 0)
                     {
                         output = (~_high & 0x8000) != 0;
-                        _output.WriteBit(output);
+                        _output?.WriteBit(output);
                         _underflowBits--;
                     }
                 }
@@ -102,20 +110,20 @@
         public void Flush()
         {
             bool output = (_low & 0x4000) != 0;
-            _output.WriteBit(output);
+            _output?.WriteBit(output);
             _underflowBits++;
 
             while (_underflowBits-- > 0)
             {
                 output = (~_low & 0x4000) != 0;
-                _output.WriteBit(output);
+                _output?.WriteBit(output);
             }
         }
 
         public void InitializeEncode()
         {
             _low = 0;
-            _high = 0;
+            _high = 0xffff;
             _underflowBits = 0;
         }
 

@@ -135,6 +135,9 @@ namespace ArithmeticCoder
             }
         }
 
+        [JsonIgnore]
+        public Order Order => _order;
+
         private void SwapStats(Int32 index1, Int32 index2)
         {
             Stat index1Stat = _stats[index1];
