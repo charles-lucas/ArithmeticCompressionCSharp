@@ -21,7 +21,7 @@ namespace ArithmeticCoder
             bool result;
             int value;
 
-            if (_mask == 0x00)
+            if (_mask == 0x80)
             {
                 try
                 {
