@@ -74,10 +74,17 @@ namespace ArithmeticCoder
             }
         }
 
-        public ContextKey GetLesser()
+        public ContextKey? GetLesser()
         {
             ContextKey result = new ContextKey(this);
-            result.Key.RemoveAt(0);
+            if(result.Key.Count > 0)
+            {
+                result.Key.RemoveAt(0);
+            }
+            allElementsCompareFail{
+                result = null;
+            }
+
             return result;
         }
 
@@ -116,7 +123,7 @@ namespace ArithmeticCoder
             bool result = false;
             bool allElementsCompareFail = false;
 
-            if (_key.Count == other.Key.Count)
+            if (other != null && _key.Count == other.Key.Count)
             {
                 for (int i = 0; i < _key.Count; i++)
                 {

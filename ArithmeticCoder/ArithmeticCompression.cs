@@ -4,11 +4,12 @@ namespace ArithmeticCoder
 {
     public class ArithmeticCompression
     {
+        //Ctor for loading a model from JSON
         public ArithmeticCompression(Stream modelStream)
         {
             StreamReader inputReader = new StreamReader(modelStream);
             string? json;
-            ModelOrderN model;
+            ModelOrderN? model;
             ContextKey? contextKey;
             Context? context;
             bool done = false;
@@ -68,14 +69,7 @@ namespace ArithmeticCoder
             _model = model;
         }
 
-        public ArithmeticCompression(Stream input, UInt32 maxOrder)
-        {
-            BinaryReader reader = new BinararyReader(input);
-            _model = new ModelOrderN(maxOrder);
-            LoadModel(reader);
-        }
-
-        public void Write(BinaryReader input, BinaryWriter output)
+        public void Compress(BinaryReader input, BinaryWriter output)
         {
             Int32 character;
             Symbol symbol = new Symbol();
@@ -130,9 +124,37 @@ namespace ArithmeticCoder
             _coder.Flush();
         }
 
-        public void Read(BinaryReader input, BinaryWriter output)
+        public void Expand(BinaryReader input, BinaryWriter output)
         {
+            Symbol symbol = new Symbol();
+            Int32 character;
+            Int32 count;
+            Coder coder = new Coder(false, input, null);
 
+            while(true)
+            {
+                do
+                {
+                    _model.GetSymbolScale(symbol);
+                    count = coder.GetCurrentCount(symbol);
+                    character = _model.ConvertSymbolToInt(count, symbol);
+                    coder.RemoveSymbol(symbol);
+                }while(character == Constants.ESCAPE);
+                if(character == Constants.DONE)
+                {
+                    break;
+                }
+                if(character != Constants.FLUSH)
+                {
+                    output.Write((byte)character);
+                }
+                else
+                {
+                    _model.Flush();
+                }
+                _model.Update(character);
+                _model.AddSymbol(character);
+            }
         }
 
         public LoadModel(BinararyReader reader)
@@ -212,6 +234,8 @@ namespace ArithmeticCoder
         }
 
         public UInt32 MaxOrder => _model.MaxOrder;
+
+        public string Context => _model.LastContext.ToString();
 
         private ModelOrderN _model;
         private Coder? _coder;

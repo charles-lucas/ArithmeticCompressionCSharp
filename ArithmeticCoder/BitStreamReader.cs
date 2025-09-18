@@ -23,12 +23,12 @@ namespace ArithmeticCoder
 
             if (_mask == 0x00)
             {
-                value = _stream.ReadByte();
-                if (value != Constants.EOF)
+                try
                 {
+                    value = _stream.ReadByte();
                     _rack = (byte)value;
                 }
-                else
+                catch(System.IO.EndOfStreamException)
                 {
                     _rack = 0x00;
                 }

@@ -5,7 +5,7 @@ namespace ArithmeticCoder
 {
     public class ModelOrderN : IModel
     {
-
+        //Ctor for JSON 
         public ModelOrderN()
         {
             _maxOrder = 0;
@@ -22,7 +22,7 @@ namespace ArithmeticCoder
             _controlContext.Update(-Constants.FLUSH);
             _controlContext.Update(-Constants.DONE);
 
-            for (int bite = 0x0; bite <= 256; bite++)
+            for (int bite = 0x0; bite < 256; bite++)
             {
                 _allSymbolContext.Update((byte)bite);
             }
@@ -47,7 +47,7 @@ namespace ArithmeticCoder
             _controlContext.Update(-Constants.FLUSH);
             _controlContext.Update(-Constants.DONE);
 
-            for (int bite = 0x0; bite <= 256; bite++)
+            for (int bite = 0x0; bite < 256; bite++)
             {
                 _allSymbolContext.Update((byte)bite);
             }
@@ -55,24 +55,10 @@ namespace ArithmeticCoder
 
         public bool ConvertIntToSymbol(Int32 character, Symbol symbol)
         {
-            int i;
-            Context table;
+            int index;
+            Context table = GetCurrentContext();
             UInt16[] totals;
 
-            if (_order == Order.Model)
-            {
-                table = _contexts[_contextKey];
-            }
-            else if (_order == Order.AllSymbols)
-            {
-                table = _allSymbolContext;
-            }
-            else
-            {
-                table = _controlContext;
-            }
-
-            //TotalizeTable( table );
             totals = table.Totalize(_scoreboard);
 
             symbol.Scale = totals[0];
@@ -82,12 +68,12 @@ namespace ArithmeticCoder
                 character = -character;
             }
 
-            if ( (i = table.Stats.IndexOf(new Stat((byte)character, 0))) >= 0 )
+            if ( (index = table.Stats.IndexOf(new Stat((byte)character, 0))) >= 0 )
             {
-                if (table.Stats[i].Count != 0)
+                if (table.Stats[index].Count != 0)
                 {
-                    symbol.LowCount = totals[i + 2];
-                    symbol.HighCount = totals[i + 1];
+                    symbol.LowCount = totals[index + 2];
+                    symbol.HighCount = totals[index + 1];
                     return false;
                 }
             }
@@ -125,6 +111,50 @@ namespace ArithmeticCoder
             {
                 key.MaxLength = _maxOrder;
             }
+        }
+
+        public void SetLastContext()
+        {
+            _lastContext = _contextKey;
+        }
+
+        public GetSymbolScale(Symbol)
+        {
+            Context table = GetCurrentContext();
+
+            _totals = table.Totalize();
+            symbol.Scale = _totals[0];
+        }
+
+        public Int32 ConvertSymbolToInt(Int32 count, Symbol symbol)
+        {
+            int character;
+            Int32 result;
+            Context table = GetCurrentContext();
+
+            for(character = 0; count < _totals[character]; character++)
+            {
+                ;
+            }
+
+            symbol.HighCount = _totals[character -1];
+            symbol.LoadModel = _totals[character];
+
+            if(character = 1)
+            {
+                DecrementOrder();
+                result =  Constants.ESCAPE;
+            }
+            else if(_order == Order.Control)
+            {
+                result = -table.Stats[character - 1].Symbol;
+            }
+            else
+            {
+                result = table.Stats[character - 1].Symbol;
+            }
+
+            return result;
         }
 
         private void DecrementOrder()
@@ -200,6 +230,11 @@ namespace ArithmeticCoder
                 }
                 _escapedContexts.Clear();
             }
+
+            for(int i = 0; i < _scoreboard.Length; i++)
+            {
+                _scoreboard[i] = 0;
+            }
         }
 
         public void AddSymbol(Int32 character)
@@ -247,6 +282,25 @@ namespace ArithmeticCoder
             }
 
             return table.Stats[(byte)(character - 2)].Symbol;
+        }
+
+        private Context GetCurrentContext()
+        {
+            Context table;
+            if (_order == Order.Model)
+            {
+                table = _contexts[_contextKey];
+            }
+            else if (_order == Order.AllSymbols)
+            {
+                table = _allSymbolContext;
+            }
+            else
+            {
+                table = _controlContext;
+            }
+
+            return table;
         }
 
         [JsonInclude]
