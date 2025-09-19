@@ -37,23 +37,32 @@
 
         public void WriteBits(UInt32 code, Int32 count)
         {
-            UInt64 (UInt64)(1 << (count - 1));
+            UInt64 mask = (UInt64)(1 << (count - 1));
 
             while(mask != 0)
             {
                 if((mask & code) != 0)
                 {
-                    _rack | _mask;
+                    _rack |= _mask;
                 }
                 _mask >>= 1;
                 if(_mask == 0x00)
                 {
-                    _output.Write(_rack);
+                    _stream.Write(_rack);
                     _rack = 0x00;
                     _mask = 0x80;
                 }
                 mask >>= 1;
             }
+        }
+
+        public void Flush()
+        {
+            if(_mask != 0x80)
+            {
+                _stream.Write(_rack);
+            }
+            _stream.Flush();
         }
 
         private byte _rack;

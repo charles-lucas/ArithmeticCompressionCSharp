@@ -140,7 +140,8 @@ namespace ArithmeticCoder
                     character = _model.ConvertSymbolToInt(count, symbol);
                     coder.RemoveSymbol(symbol);
                 }while(character == Constants.ESCAPE);
-                if(character == Constants.DONE)
+                //XXX FIXME termination character issues
+                if(character == Constants.DONE || character == 0xff)
                 {
                     break;
                 }
@@ -157,7 +158,7 @@ namespace ArithmeticCoder
             }
         }
 
-        public LoadModel(BinararyReader reader)
+        public void LoadModel(System.IO.BinaryReader reader)
         {
             Symbol symbol = new Symbol();
             Coder coder = new Coder(false, reader, null);
@@ -166,9 +167,9 @@ namespace ArithmeticCoder
 
             while(true)
             {
-                done
+                do
                 {
-                    _model.GetSymbolScale();
+                    _model.GetSymbolScale(symbol);
                     count = coder.GetCurrentCount(symbol);
                     character = _model.ConvertSymbolToInt(symbol);
                     coder.RemoveSymbol(symbol);

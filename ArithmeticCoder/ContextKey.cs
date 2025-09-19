@@ -76,12 +76,13 @@ namespace ArithmeticCoder
 
         public ContextKey? GetLesser()
         {
-            ContextKey result = new ContextKey(this);
+            ContextKey? result = new ContextKey(this);
             if(result.Key.Count > 0)
             {
                 result.Key.RemoveAt(0);
             }
-            allElementsCompareFail{
+            else
+            {
                 result = null;
             }
 
@@ -110,7 +111,7 @@ namespace ArithmeticCoder
             {
                 return _key;
             }
-            SetMaxOrder
+            set
             {
                 _key = value;
             }

@@ -6,7 +6,7 @@
         {
             _input = new BitStreamReader(input);
 
-            if(output)
+            if(output != null)
             {
                 _output = new BitStreamWriter(output);
             }
@@ -118,6 +118,7 @@
                 output = (~_low & 0x4000) != 0;
                 _output?.WriteBit(output);
             }
+            _output?.Flush();
         }
 
         public void InitializeEncode()
@@ -145,6 +146,6 @@
         private UInt16 _code;
         private UInt64 _underflowBits;
         private BitStreamReader _input;
-        private BitStreamWriter _output;
+        private BitStreamWriter? _output;
     }
 }

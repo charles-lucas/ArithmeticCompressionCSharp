@@ -118,11 +118,11 @@ namespace ArithmeticCoder
             _lastContext = _contextKey;
         }
 
-        public GetSymbolScale(Symbol)
+        public void GetSymbolScale(Symbol symbol)
         {
             Context table = GetCurrentContext();
 
-            _totals = table.Totalize();
+            _totals = table.Totalize(_scoreboard);
             symbol.Scale = _totals[0];
         }
 
@@ -137,21 +137,21 @@ namespace ArithmeticCoder
                 ;
             }
 
-            symbol.HighCount = _totals[character -1];
-            symbol.LoadModel = _totals[character];
+            symbol.HighCount = _totals[character - 1];
+            symbol.LowCount = _totals[character];
 
-            if(character = 1)
+            if(character == 1)
             {
                 DecrementOrder();
-                result =  Constants.ESCAPE;
+                result = Constants.ESCAPE;
             }
             else if(_order == Order.Control)
             {
-                result = -table.Stats[character - 1].Symbol;
+                result = -table.Stats[character - 2].Symbol;
             }
             else
             {
-                result = table.Stats[character - 1].Symbol;
+                result = table.Stats[character - 2].Symbol;
             }
 
             return result;
@@ -202,7 +202,7 @@ namespace ArithmeticCoder
             ContextKey key;
             foreach(var stat in _contexts[contextKey].Stats)
             {
-                key = new ContainsKey(contextKey, stat.Symbol);
+                key = new ContextKey(contextKey, stat.Symbol);
                 if(_contexts.ContainsKey(key))
                 {
                     Flush(key);
@@ -248,14 +248,6 @@ namespace ArithmeticCoder
                 }
                 _order = Order.Model;
             }
-        }
-
-        public void GetSymbolScale(Symbol symbol)
-        {
-            Context table = _contexts[_contextKey];
-
-            _totals = table.Totalize(_scoreboard);
-            symbol.Scale = _totals[0];
         }
 
         public Int32 ConvertSymbolToInt(Symbol symbol)
@@ -328,6 +320,7 @@ namespace ArithmeticCoder
                 _lastContext = value;
                 _contextKey = value;
             }
+        }
 
         [JsonIgnore]
         public Dictionary<ContextKey, Context> Contexts
