@@ -111,7 +111,7 @@ namespace ArithmeticCoder
                 Rescale();
             }
 
-            for (i = 0; i < (_stats.Count - 1); i++)
+            for (i = 0; i < _stats.Count; i++)
             {
                 if (_stats[i].Count != 0)
                 {
