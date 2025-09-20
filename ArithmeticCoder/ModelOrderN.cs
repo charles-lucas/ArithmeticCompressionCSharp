@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ArithmeticCoder
 {
-    public class ModelOrderN : IModel
+    public class ModelOrderN
     {
         //Ctor for JSON 
         public ModelOrderN()
@@ -274,6 +274,38 @@ namespace ArithmeticCoder
             }
 
             return table.Stats[(byte)(character - 2)].Symbol;
+        }
+
+        public UInt128 DictionaryStats(StreamWriter stream)
+        {
+            Dictionary<ContextKey, UInt64> collisions = new Dictionary<ContextKey, UInt64>();
+            UInt128 totalCollisions = 0;
+
+            foreach (ContextKey key in _contexts.Keys)
+            {
+                if (collisions.ContainsKey(key))
+                {
+                    collisions[key]++;
+                    totalCollisions++;
+                }
+                else
+                {
+                    collisions.Add(key, 0);
+                }
+            }
+
+            stream.WriteLine(String.Format("Total entries: {0:N0}", _contexts.Count));
+            stream.WriteLine(String.Format("Total collisions: {0:N0}", totalCollisions));
+
+            foreach (var collision in collisions)
+            {
+                if(collision.Value != 0)
+                {
+                    stream.WriteLine(String.Format("Key:\t{0}\tcollisions: {1:N0}\n", collision.Key.GetHashCode(), collision.Value));
+                }
+            }
+
+            return totalCollisions;
         }
 
         private Context GetCurrentContext()

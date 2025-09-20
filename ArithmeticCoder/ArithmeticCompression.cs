@@ -234,6 +234,8 @@ namespace ArithmeticCoder
            _model.Export(output);
         }
 
+        public UInt128 DictionaryStats(StreamWriter stream) => _model.DictionaryStats(stream);
+
         public UInt32 MaxOrder => _model.MaxOrder;
 
         public string Context => _model.LastContext.ToString();
