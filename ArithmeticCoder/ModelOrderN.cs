@@ -26,6 +26,9 @@ namespace ArithmeticCoder
             {
                 _allSymbolContext.Update((byte)bite);
             }
+
+            _isFirstByte = true;
+            _compabilityMode = true;
         }
 
         public ModelOrderN(UInt32 maxOrder)
@@ -51,6 +54,9 @@ namespace ArithmeticCoder
             {
                 _allSymbolContext.Update((byte)bite);
             }
+
+            _isFirstByte = true;
+            _compabilityMode = true;
         }
 
         public bool ConvertIntToSymbol(Int32 character, Symbol symbol)
@@ -239,9 +245,31 @@ namespace ArithmeticCoder
 
         public void AddSymbol(Int32 character)
         {
+            ContextKey contextKey;
             if (character >= 0)
             {
+                if (_isFirstByte && _compabilityMode)
+                {
+                    _isFirstByte = false;
+                    contextKey = _contextKey;
+                    while (contextKey.Key.Count < _contextKey.MaxLength)
+                    {
+                        if (!_contexts.ContainsKey(contextKey))
+                        {
+                            _contexts.Add(contextKey, new Context(new Stat(0x00, 0)));
+                        }
+                        else
+                        {
+                            if (!_contexts[contextKey].Stats.Contains(new Stat(0x00, 0)))
+                            {
+                                _contexts[contextKey].Stats.Add(new Stat(0x00, 0));
+                            }
+                        }
+                        contextKey = new ContextKey(contextKey, (byte)character);
+                    }
+                }
                 _contextKey = new ContextKey(_contextKey, (byte)character);
+
                 if (!_contexts.ContainsKey(_contextKey))
                 {
                     _contexts.Add(_contextKey, new Context());
@@ -377,5 +405,7 @@ namespace ArithmeticCoder
         private ContextKey _contextKey;
         private UInt32 _maxOrder;
         private ContextKey _lastContext;
+        private bool _compabilityMode;
+        private bool _isFirstByte;
     }
 }
