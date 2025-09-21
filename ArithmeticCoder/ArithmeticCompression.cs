@@ -59,9 +59,9 @@ namespace ArithmeticCoder
             }
         }
 
-        public ArithmeticCompression(UInt32 maxOrder)
+        public ArithmeticCompression(UInt32 maxOrder, bool compatabilityMode = false)
         {
-            _model = new ModelOrderN(maxOrder);
+            _model = new ModelOrderN(maxOrder, compatabilityMode);
         }
 
         public ArithmeticCompression(ModelOrderN model)
@@ -113,13 +113,14 @@ namespace ArithmeticCoder
                     _model.Flush();
                     flush = false;
                 }
-                else if (character == Constants.DONE)
+                else if (character == Constants.DONE || character == 0xff)
                 {
                     break;
                 }
 
                 _model.Update((byte)character);
                 _model.AddSymbol(character);
+                //_model.Print((byte)character);
             }
             _coder.Flush();
         }

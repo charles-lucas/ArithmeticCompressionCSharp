@@ -28,10 +28,10 @@ namespace ArithmeticCoder
             }
 
             _isFirstByte = true;
-            _compabilityMode = true;
+            _compatabilityMode = false;
         }
 
-        public ModelOrderN(UInt32 maxOrder)
+        public ModelOrderN(UInt32 maxOrder, bool compatability = false)
         {
             Context context0 = new Context();
             _maxOrder = maxOrder;
@@ -56,7 +56,7 @@ namespace ArithmeticCoder
             }
 
             _isFirstByte = true;
-            _compabilityMode = true;
+            _compatabilityMode = compatability;
         }
 
         public bool ConvertIntToSymbol(Int32 character, Symbol symbol)
@@ -229,15 +229,16 @@ namespace ArithmeticCoder
                 {
                     _contexts[_contextKey].Update((byte)character);
                 }
-                // Set context to max context
-                if (_escapedContexts.Count != 0)
-                {
-                    _contextKey = _escapedContexts.First();
-                }
-                _escapedContexts.Clear();
             }
+            // Set context to max context
+            if (_escapedContexts.Count != 0)
+            {
+                _contextKey = _escapedContexts.First();
+            }
+            _escapedContexts.Clear();
+            _order = Order.Model;
 
-            for(int i = 0; i < _scoreboard.Length; i++)
+            for (int i = 0; i < _scoreboard.Length; i++)
             {
                 _scoreboard[i] = 0;
             }
@@ -245,36 +246,9 @@ namespace ArithmeticCoder
 
         public void AddSymbol(Int32 character)
         {
-            ContextKey contextKey;
-            if (character >= 0)
+            if (character >= 0 && _order == Order.Model)
             {
-                if (_isFirstByte && _compabilityMode)
-                {
-                    _isFirstByte = false;
-                    contextKey = _contextKey;
-                    while (contextKey.Key.Count < _contextKey.MaxLength)
-                    {
-                        if (!_contexts.ContainsKey(contextKey))
-                        {
-                            _contexts.Add(contextKey, new Context(new Stat(0x00, 0)));
-                        }
-                        else
-                        {
-                            if (!_contexts[contextKey].Stats.Contains(new Stat(0x00, 0)))
-                            {
-                                _contexts[contextKey].Stats.Add(new Stat(0x00, 0));
-                            }
-                        }
-                        contextKey = new ContextKey(contextKey, (byte)character);
-                    }
-                }
-                _contextKey = new ContextKey(_contextKey, (byte)character);
-
-                if (!_contexts.ContainsKey(_contextKey))
-                {
-                    _contexts.Add(_contextKey, new Context());
-                }
-                _order = Order.Model;
+                _contextKey = AllocateNextContext(_contextKey, (byte)character);
             }
         }
 
@@ -395,6 +369,76 @@ namespace ArithmeticCoder
             }
         }
 
+        private ContextKey AllocateNextContext(ContextKey key, byte character)
+        {
+            ContextKey? tempKey = null;
+            if (_compatabilityMode && _isFirstByte)
+            {   if(_isFirstByte)
+                {
+                    _isFirstByte = false;
+                    _contexts[key].Update(new Stat(0x00, 0x00), false);
+                    
+                    while (key.Key.Count < _contextKey.MaxLength)
+                    {
+                        key = new ContextKey(key, 0);
+                        if (!_contexts.ContainsKey(key))
+                        {
+                            if (key.Key.Count == _contextKey.MaxLength)
+                            {
+                                _contexts.Add(key, new Context(new Stat(character, 1)));
+                            }
+                            else
+                            {
+                                _contexts.Add(key, new Context(new Stat(0x00, 0)));
+                                _contexts[key].Update(character);
+                            }
+                        }
+                    }
+                    key = new ContextKey(key, character);
+                    if (!_contexts.ContainsKey(key))
+                    {
+                        _contexts.Add(key, new Context());
+                    }
+                    tempKey = key.GetLesser();
+                    while(tempKey != null && !tempKey.Empty() && !_contexts.ContainsKey(tempKey))
+                    {
+                        _contexts.Add(tempKey, new Context());
+                        tempKey = tempKey.GetLesser();
+                    }
+                }
+            }
+            else
+            {
+                key = new ContextKey(key, character);
+                if (!_contexts.ContainsKey(key))
+                {
+                    _contexts.Add(key, new Context());
+                }
+            }
+
+            return key;
+        }
+
+        public void Print(byte character)
+        {
+            System.Console.WriteLine("Added:\t{0:x2}", character);
+            foreach (var context in _contexts)
+            {
+                System.Console.WriteLine("Context: '{0}'", context.Key.ToString());
+                foreach (var value in context.Value.Stats)
+                {
+                    System.Console.WriteLine("\tSymbol:\t{0:x2}\t{1}", value.Symbol, value.Count);
+                }
+                System.Console.WriteLine();
+            }
+        }
+
+        public bool CompatabilityMode
+        { 
+            get;
+            set;
+        }
+
         private Dictionary<ContextKey, Context> _contexts;
         private List<ContextKey> _escapedContexts;
         private Context _allSymbolContext;
@@ -405,7 +449,7 @@ namespace ArithmeticCoder
         private ContextKey _contextKey;
         private UInt32 _maxOrder;
         private ContextKey _lastContext;
-        private bool _compabilityMode;
+        private bool _compatabilityMode;
         private bool _isFirstByte;
     }
 }

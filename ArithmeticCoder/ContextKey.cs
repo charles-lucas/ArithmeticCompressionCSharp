@@ -215,7 +215,7 @@ namespace ArithmeticCoder
                 {
                     first = false;
                 }
-                result += String.Format("{0}", bite);
+                result += String.Format("{0:x2}", bite);
             }
 
             return result;

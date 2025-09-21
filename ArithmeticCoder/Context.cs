@@ -30,7 +30,7 @@ namespace ArithmeticCoder
             _order = order;
         }
 
-        public void Update(Stat stat)
+        public void Update(Stat stat, bool increment = true)
         {
             int index = _stats.IndexOf(stat);
             int i = index;
@@ -52,7 +52,10 @@ namespace ArithmeticCoder
                 i = FindSwapIndex(index);
                 SwapStats(i, index);
             }
-            _stats[i].Increment();
+            if(increment)
+            {
+                _stats[i].Increment();
+            }
             if (_stats[i].Count == 0xff)
             {
                 Rescale();
