@@ -118,7 +118,7 @@
                 output = (~_low & 0x4000) != 0;
                 _output?.WriteBit(output);
             }
-            _output?.Flush();
+            _output?.WriteBits(0, 16);
         }
 
         public void InitializeEncode()

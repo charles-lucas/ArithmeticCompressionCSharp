@@ -35,7 +35,7 @@
             return bitCount;
         }
 
-        public void WriteBits(UInt32 code, Int32 count)
+        public void WriteBits(UInt64 code, Int32 count)
         {
             UInt64 mask = (UInt64)(1 << (count - 1));
 

@@ -57,6 +57,23 @@ namespace ArithmeticCoder
 
             _isFirstByte = true;
             _compatabilityMode = compatability;
+
+            if(_compatabilityMode)
+            {
+                _contexts[_contextKey].Update(new Stat(0x00, 0), false);
+                while(_contextKey.Key.Count < _contextKey.MaxLength)
+                {
+                    _contextKey = new ContextKey(_contextKey, 0x00);
+                    if(_contextKey.Key.Count != _contextKey.MaxLength)
+                    {
+                        _contexts.Add(_contextKey, new Context(new Stat(0x00, 0)));
+                    }
+                    else
+                    {
+                        _contexts.Add(_contextKey, new Context());
+                    }
+                }
+            }
         }
 
         public bool ConvertIntToSymbol(Int32 character, Symbol symbol)
@@ -371,40 +388,23 @@ namespace ArithmeticCoder
 
         private ContextKey AllocateNextContext(ContextKey key, byte character)
         {
-            ContextKey? tempKey = null;
-            if (_compatabilityMode && _isFirstByte)
-            {   if(_isFirstByte)
+            ContextKey? lesser = null;
+            if (_compatabilityMode)
+            {   
+                key = new ContextKey(key, character);
+                if (!_contexts.ContainsKey(key))
                 {
-                    _isFirstByte = false;
-                    _contexts[key].Update(new Stat(0x00, 0x00), false);
-                    
-                    while (key.Key.Count < _contextKey.MaxLength)
+                    _contexts.Add(key, new Context());
+                }
+                // ensure lessers exist 
+                lesser = key.GetLesser();
+                while(lesser != null && !lesser.Empty())
+                {
+                    if(_contexts.ContainsKey(lesser))
                     {
-                        key = new ContextKey(key, 0);
-                        if (!_contexts.ContainsKey(key))
-                        {
-                            if (key.Key.Count == _contextKey.MaxLength)
-                            {
-                                _contexts.Add(key, new Context(new Stat(character, 1)));
-                            }
-                            else
-                            {
-                                _contexts.Add(key, new Context(new Stat(0x00, 0)));
-                                _contexts[key].Update(character);
-                            }
-                        }
+                        _contexts.Add(lesser, new Context());
                     }
-                    key = new ContextKey(key, character);
-                    if (!_contexts.ContainsKey(key))
-                    {
-                        _contexts.Add(key, new Context());
-                    }
-                    tempKey = key.GetLesser();
-                    while(tempKey != null && !tempKey.Empty() && !_contexts.ContainsKey(tempKey))
-                    {
-                        _contexts.Add(tempKey, new Context());
-                        tempKey = tempKey.GetLesser();
-                    }
+                    lesser = lesser.GetLesser();
                 }
             }
             else
