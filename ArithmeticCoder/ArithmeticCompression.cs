@@ -113,14 +113,14 @@ namespace ArithmeticCoder
                     _model.Flush();
                     flush = false;
                 }
-                else if (character == Constants.DONE || character == 0xff)
+                else if (character == Constants.DONE)
                 {
                     break;
                 }
 
                 _model.Update((byte)character);
                 _model.AddSymbol(character);
-                _model.Print((byte)character);
+                //_model.Print((byte)character);
             }
             _coder.Flush();
         }
@@ -141,8 +141,8 @@ namespace ArithmeticCoder
                     character = _model.ConvertSymbolToInt(count, symbol);
                     coder.RemoveSymbol(symbol);
                 }while(character == Constants.ESCAPE);
-                //XXX FIXME termination character issues
-                if(character == Constants.DONE || character == 0xff)
+                
+                if(character == Constants.DONE)
                 {
                     break;
                 }

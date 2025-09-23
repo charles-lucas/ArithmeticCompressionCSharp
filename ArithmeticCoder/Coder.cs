@@ -119,6 +119,7 @@
                 _output?.WriteBit(output);
             }
             _output?.WriteBits(0, 16);
+            _output?.Flush();
         }
 
         public void InitializeEncode()

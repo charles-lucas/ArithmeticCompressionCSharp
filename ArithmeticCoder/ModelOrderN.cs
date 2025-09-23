@@ -91,7 +91,7 @@ namespace ArithmeticCoder
                 character = -character;
             }
 
-            if ( (index = table.Stats.IndexOf(new Stat((byte)character, 0))) >= 0 )
+            if ( character != -1 && (index = table.Stats.IndexOf(new Stat((byte)character, 0))) >= 0 )
             {
                 if (table.Stats[index].Count != 0)
                 {
@@ -389,49 +389,27 @@ namespace ArithmeticCoder
         private ContextKey AllocateNextContext(ContextKey key, byte character)
         {
             ContextKey? lesser = null;
+            key = new ContextKey(key, character);
+            if (!_contexts.ContainsKey(key))
+            {
+                _contexts.Add(key, new Context());
+            }
+
             if (_compatabilityMode)
             {   
-                key = new ContextKey(key, character);
                 if (!_contexts.ContainsKey(key))
                 {
                     _contexts.Add(key, new Context());
                 }
                 // ensure lessers exist 
                 lesser = key.GetLesser();
-                while(lesser != null && !lesser.Empty())
+                while (lesser != null && !lesser.Empty())
                 {
-                    if(_contexts.ContainsKey(lesser))
+                    if (!_contexts.ContainsKey(lesser))
                     {
                         _contexts.Add(lesser, new Context());
                     }
                     lesser = lesser.GetLesser();
-                }
-                else
-                {
-                    key = new ContextKey(key, character);
-                    if (!_contexts.ContainsKey(key))
-                    {
-                        _contexts.Add(key, new Context());
-                    }
-                    while (key.Key.Count < _contextKey.MaxLength)
-                    {
-                        if (!_contexts.ContainsKey(key))
-                        {
-                            if (key.Key.Count == _contextKey.MaxLength)
-                            {
-                                _contexts.Add(key, new Context());
-                            }
-                        }
-                        key = new ContextKey(key, character);
-                    }
-                }
-            }
-            else
-            {
-                key = new ContextKey(key, character);
-                if (!_contexts.ContainsKey(key))
-                {
-                    _contexts.Add(key, new Context());
                 }
             }
 
