@@ -372,8 +372,9 @@ namespace ArithmeticCoder
         private ContextKey AllocateNextContext(ContextKey key, byte character)
         {
             ContextKey? tempKey = null;
-            if (_compatabilityMode && _isFirstByte)
-            {   if(_isFirstByte)
+            if (_compatabilityMode)
+            {
+                if(_isFirstByte)
                 {
                     _isFirstByte = false;
                     _contexts[key].Update(new Stat(0x00, 0x00), false);
@@ -406,6 +407,25 @@ namespace ArithmeticCoder
                         tempKey = tempKey.GetLesser();
                     }
                 }
+                else
+                {
+                    key = new ContextKey(key, character);
+                    if (!_contexts.ContainsKey(key))
+                    {
+                        _contexts.Add(key, new Context());
+                    }
+                    while (key.Key.Count < _contextKey.MaxLength)
+                    {
+                        if (!_contexts.ContainsKey(key))
+                        {
+                            if (key.Key.Count == _contextKey.MaxLength)
+                            {
+                                _contexts.Add(key, new Context());
+                            }
+                        }
+                        key = new ContextKey(key, character);
+                    }
+                }
             }
             else
             {
@@ -431,6 +451,7 @@ namespace ArithmeticCoder
                 }
                 System.Console.WriteLine();
             }
+            System.Console.WriteLine("Key:\t{0}\n", _contextKey.ToString());
         }
 
         public bool CompatabilityMode

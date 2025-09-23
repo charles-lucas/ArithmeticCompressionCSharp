@@ -120,7 +120,7 @@ namespace ArithmeticCoder
 
                 _model.Update((byte)character);
                 _model.AddSymbol(character);
-                //_model.Print((byte)character);
+                _model.Print((byte)character);
             }
             _coder.Flush();
         }
