@@ -125,6 +125,75 @@ namespace ArithmeticCoder
             _coder.Flush();
         }
 
+        public void CompressSplit(BinaryReader input, string outputBaseName, Int32 partMax)
+        {
+            Int32 character;
+            Symbol symbol = new Symbol();
+            bool escaped;
+            bool flush = false;
+            Int16 textCount = 0;
+            Int32 parts = 0;
+            string outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
+            BinaryWriter output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
+            Int32 extraByteForOverFLow;
+
+            _coder = new Coder(true, input, output);
+
+            while (true)
+            {
+                if ((++textCount & 0x0ff) == 0)
+                {
+                    flush = CheckCompression(input, output);
+                }
+
+                if (!flush)
+                {
+                    try
+                    {
+                        character = input.ReadByte();
+                    }
+                    catch (EndOfStreamException)
+                    {
+                        _model.SetLastContext();
+                        character = Constants.DONE;
+                    }
+                }
+                else
+                {
+                    character = Constants.FLUSH;
+                }
+
+                do
+                {
+                    escaped = _model.ConvertIntToSymbol(character, symbol);
+                    _coder.Encode(symbol);
+                } while (escaped);
+
+                extraByteForOverFLow = (_coder.UnderflowBits > 0 ? 1 : 0);
+                if (character == Constants.FLUSH)
+                {
+                    _model.Flush();
+                    flush = false;
+                }
+                else if (character == Constants.DONE)
+                {
+                    break;
+                }
+                else if((_coder.OutputLength + extraByteForOverFLow)  > (partMax - Constants.EndOfPacketSpace))
+                {
+                    _coder.Flush();
+                    output.Flush();
+                    output.Close();
+                    outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
+                    output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
+                }
+                _model.Update((byte)character);
+                _model.AddSymbol(character);
+                //_model.Print((byte)character);
+            }
+            _coder.Flush();
+        }
+
         public void Expand(BinaryReader input, BinaryWriter output)
         {
             Symbol symbol = new Symbol();

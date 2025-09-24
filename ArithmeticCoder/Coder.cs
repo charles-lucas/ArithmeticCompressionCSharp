@@ -142,6 +142,21 @@
             _high = 0xffff;
         }
 
+        public Int64 OutputLength
+        {
+            get
+            {
+                Int64 result = 0;
+                if (_output != null)
+                {
+                    result = _output.Length;
+                }
+                return result;
+            }
+        }
+
+        public UInt64 UnderflowBits => _underflowBits;
+
         private UInt16 _low;
         private UInt16 _high;
         private UInt16 _code;

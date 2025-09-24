@@ -65,6 +65,15 @@
             _stream.Flush();
         }
 
+        public Int64 Length
+        {
+            get
+            {
+                _stream.Flush();
+                return _stream.BaseStream.Length;
+            }
+        }
+
         private byte _rack;
         private byte _mask;
         private BinaryWriter _stream;

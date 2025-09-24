@@ -14,5 +14,6 @@ namespace ArithmeticCoder
         public const Int16 FLUSH = -2;
         public const Int16 EOF = -1;
         public const Int32 CompressionLimit = 90;
+        public const Int32 EndOfPacketSpace = 4; // bytes
     }
 }
