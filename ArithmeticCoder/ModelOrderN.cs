@@ -19,16 +19,16 @@ namespace ArithmeticCoder
             _contextKey = new ContextKey(_maxOrder);
             _lastContext = _contextKey;
 
-            _controlContext.Update(-Constants.EndOfPacket);
+            
             _controlContext.Update(-Constants.FLUSH);
             _controlContext.Update(-Constants.DONE);
+            _controlContext.Update(-Constants.EndOfPacket);
 
             for (int bite = 0x0; bite < 256; bite++)
             {
                 _allSymbolContext.Update((byte)bite);
             }
 
-            _isFirstByte = true;
             _compatabilityMode = false;
         }
 
@@ -48,16 +48,16 @@ namespace ArithmeticCoder
 
             _contexts.Add(_contextKey, context0);
 
-            _controlContext.Update(-Constants.EndOfPacket);
+            
             _controlContext.Update(-Constants.FLUSH);
             _controlContext.Update(-Constants.DONE);
+            _controlContext.Update(-Constants.EndOfPacket);
 
             for (int bite = 0x0; bite < 256; bite++)
             {
                 _allSymbolContext.Update((byte)bite);
             }
 
-            _isFirstByte = true;
             _compatabilityMode = compatability;
 
             if(_compatabilityMode)
@@ -275,6 +275,7 @@ namespace ArithmeticCoder
         {
             Int32 character;
             Context table = _contexts[_contextKey];
+            Int32 result;
 
             for(character = 0; character < _totals[character]; character++)
             {
@@ -286,15 +287,18 @@ namespace ArithmeticCoder
             if(character == 1)
             {
                 DecrementOrder();
-                return Constants.ESCAPE;
+                result = Constants.ESCAPE;
             }
-
-            if(table.Order == Order.Control)
+            else if(table.Order == Order.Control)
             {
-                return -(table.Stats[(byte)(character - 2)].Symbol);
+                result = -(table.Stats[(byte)(character - 2)].Symbol);
+            }
+            else
+            {
+                result = table.Stats[(byte)(character - 2)].Symbol;
             }
 
-            return table.Stats[(byte)(character - 2)].Symbol;
+            return result;
         }
 
         public UInt128 DictionaryStats(StreamWriter stream)
@@ -391,6 +395,7 @@ namespace ArithmeticCoder
         private ContextKey AllocateNextContext(ContextKey key, byte character)
         {
             ContextKey? lesser = null;
+            
             key = new ContextKey(key, character);
             if (!_contexts.ContainsKey(key))
             {
@@ -399,10 +404,6 @@ namespace ArithmeticCoder
 
             if (_compatabilityMode)
             {   
-                if (!_contexts.ContainsKey(key))
-                {
-                    _contexts.Add(key, new Context());
-                }
                 // ensure lessers exist 
                 lesser = key.GetLesser();
                 while (lesser != null && !lesser.Empty())
@@ -416,6 +417,21 @@ namespace ArithmeticCoder
             }
 
             return key;
+        }
+
+        public void Print()
+        {
+            System.Console.WriteLine("Init");
+            foreach (var context in _contexts)
+            {
+                System.Console.WriteLine("Context: '{0}'", context.Key.ToString());
+                foreach (var value in context.Value.Stats)
+                {
+                    System.Console.WriteLine("\tSymbol:\t{0:x2}\t{1}", value.Symbol, value.Count);
+                }
+                System.Console.WriteLine();
+            }
+            System.Console.WriteLine("Key:\t{0}\n", _contextKey.ToString());
         }
 
         public void Print(byte character)
@@ -450,6 +466,5 @@ namespace ArithmeticCoder
         private UInt32 _maxOrder;
         private ContextKey _lastContext;
         private bool _compatabilityMode;
-        private bool _isFirstByte;
     }
 }

@@ -143,7 +143,6 @@ namespace ArithmeticCoder
             while(_output != null && _output.Length < padToSize)
             {
                 _output?.WriteByte(0x00);
-                _output?.Flush();
             }
         }
 
@@ -192,22 +191,6 @@ namespace ArithmeticCoder
                     result = _output.Mask;
                 }
                 return result;
-            }
-        }
-
-        public BinaryWriter OutputStream
-        {
-            set
-            {
-                _output = new BitStreamWriter(value);
-            }
-        }
-
-        public BinaryReader InputStream
-        {
-            set
-            {
-                _input = new BitStreamReader(value);
             }
         }
 

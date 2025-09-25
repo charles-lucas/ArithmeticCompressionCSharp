@@ -65,6 +65,12 @@
             _stream.Flush();
         }
 
+        public void Flush(byte bite)
+        {
+            _stream.Write(bite);
+            _stream.Flush();
+        }
+
         public Int64 Length
         {
             get
@@ -81,14 +87,6 @@
 
         public byte Mask => _mask;
         public byte Rack => _rack;
-
-        public BinaryWriter OutPutStream
-        {
-            set
-            {
-                _stream = value;
-            }
-        }
 
         private byte _rack;
         private byte _mask;

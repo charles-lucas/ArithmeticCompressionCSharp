@@ -120,7 +120,6 @@ namespace ArithmeticCoder
 
                 _model.Update((byte)character);
                 _model.AddSymbol(character);
-                //_model.Print((byte)character);
             }
             _coder.Flush();
         }
@@ -133,11 +132,10 @@ namespace ArithmeticCoder
             bool flush = false;
             Int16 textCount = 0;
             Int32 parts = 0;
-            bool endPacket = false;
-            Int32 bitsLeftInMask = 0;
             string outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
             BinaryWriter output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
             Int32 extraByteForOverFLow;
+            byte spaceIncurrentByte;
 
             _coder = new Coder(true, input, output);
 
@@ -153,14 +151,14 @@ namespace ArithmeticCoder
                     
                     if (_coder.UnderflowBits > 0)
                     {
-                        for(byte bite = _coder.Mask; bite != 0;  bite >>= 1)
+                        for(byte bite = _coder.Mask; bite > 0;  bite >>= 1)
                         {
                             bitsLeftInMask++;
                         }
                         extraByteForOverFLow = (Int32)_coder.UnderflowBits - bitsLeftInMask;
                         if(extraByteForOverFLow > 0)
                         {
-                            extraByteForOverFLow = extraByteForOverFLow / 8 + 1;
+                            extraByteForOverFLow = extraByteForOverFLow / 8 + 2;
                         }
                         else
                         {
@@ -179,7 +177,6 @@ namespace ArithmeticCoder
                     if ((_coder.OutputLength + extraByteForOverFLow + Constants.EndOfPacketSpace) > partMax)
                     {
                         character = -3;
-                        endPacket = true;
                     }
                     else
                     {
@@ -210,15 +207,14 @@ namespace ArithmeticCoder
                     _model.Flush();
                     flush = false;
                 }
-                else if (endPacket)
+                else if (echaracter == Constants.EndOfPacket)
                 {
                     _coder.Flush(partMax);
                     output.Flush();
                     output.Close();
                     outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
                     output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
-                    _coder.OutputStream = output;
-                    endPacket = false;
+                    _coder = new Coder(true, input, output);
                 }
                 else if (character == Constants.DONE)
                 {
@@ -227,7 +223,6 @@ namespace ArithmeticCoder
                 
                 _model.Update((byte)character);
                 _model.AddSymbol(character);
-                //_model.Print((byte)character);
             }
             _coder.Flush(partMax);
             output.Flush();
@@ -256,6 +251,49 @@ namespace ArithmeticCoder
                     break;
                 }
                 if(character != Constants.FLUSH)
+                {
+                    output.Write((byte)character);
+                }
+                else
+                {
+                    _model.Flush();
+                }
+                _model.Update(character);
+                _model.AddSymbol(character);
+            }
+        }
+
+        public void ExpandSplit(string inputBaseName, BinaryWriter output)
+        {
+            Symbol symbol = new Symbol();
+            Int32 character;
+            Int32 count;
+            Int32 part = 0;
+            string currentInputName = String.Format("{0}-part{1}.bin", inputBaseName, part++);
+            BinaryReader input = new BinaryReader(File.Open(currentInputName, FileMode.Open));
+            
+            _coder = new Coder(false, input, null);
+
+            while(true)
+            {
+                do {
+                    _model.GetSymbolScale(symbol);
+                    count = _coder.GetCurrentCount(symbol);
+                    character = _model.ConvertSymbolToInt(count, symbol);
+                    _coder.RemoveSymbol(symbol);
+                } while(character == Constants.ESCAPE)
+
+                if(character == Constants.DONE)
+                {
+                    break;
+                }
+                else if(character == Constants.EndOfPacket)
+                {
+                    input.Close();
+                    currentInputName = String.Format("{0}-part{1}.bin", inputBaseName, part++);
+                    _coder = new Coder(false, input, null);
+                }
+                else if(character != Constants.FLUSH)
                 {
                     output.Write((byte)character);
                 }
