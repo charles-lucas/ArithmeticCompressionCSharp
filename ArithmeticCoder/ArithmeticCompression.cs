@@ -133,6 +133,8 @@ namespace ArithmeticCoder
             bool flush = false;
             Int16 textCount = 0;
             Int32 parts = 0;
+            bool endPacket = false;
+            Int32 bitsLeftInMask = 0;
             string outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
             BinaryWriter output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
             Int32 extraByteForOverFLow;
@@ -148,14 +150,48 @@ namespace ArithmeticCoder
 
                 if (!flush)
                 {
-                    try
+                    
+                    if (_coder.UnderflowBits > 0)
                     {
-                        character = input.ReadByte();
+                        for(byte bite = _coder.Mask; bite != 0;  bite >>= 1)
+                        {
+                            bitsLeftInMask++;
+                        }
+                        extraByteForOverFLow = (Int32)_coder.UnderflowBits - bitsLeftInMask;
+                        if(extraByteForOverFLow > 0)
+                        {
+                            extraByteForOverFLow = extraByteForOverFLow / 8 + 1;
+                        }
+                        else
+                        {
+                            extraByteForOverFLow = 1;
+                        }
                     }
-                    catch (EndOfStreamException)
+                    else if(_coder.Mask != 0x80)
                     {
-                        _model.SetLastContext();
-                        character = Constants.DONE;
+                        extraByteForOverFLow = 1;
+                    }
+                    else
+                    {
+                        extraByteForOverFLow = 0;
+                    }
+
+                    if ((_coder.OutputLength + extraByteForOverFLow + Constants.EndOfPacketSpace) > partMax)
+                    {
+                        character = -3;
+                        endPacket = true;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            character = input.ReadByte();
+                        }
+                        catch (EndOfStreamException)
+                        {
+                            _model.SetLastContext();
+                            character = Constants.DONE;
+                        }
                     }
                 }
                 else
@@ -169,29 +205,33 @@ namespace ArithmeticCoder
                     _coder.Encode(symbol);
                 } while (escaped);
 
-                extraByteForOverFLow = (_coder.UnderflowBits > 0 ? 1 : 0);
                 if (character == Constants.FLUSH)
                 {
                     _model.Flush();
                     flush = false;
                 }
-                else if (character == Constants.DONE)
+                else if (endPacket)
                 {
-                    break;
-                }
-                else if((_coder.OutputLength + extraByteForOverFLow)  > (partMax - Constants.EndOfPacketSpace))
-                {
-                    _coder.Flush();
+                    _coder.Flush(partMax);
                     output.Flush();
                     output.Close();
                     outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
                     output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
+                    _coder.OutputStream = output;
+                    endPacket = false;
                 }
+                else if (character == Constants.DONE)
+                {
+                    break;
+                }
+                
                 _model.Update((byte)character);
                 _model.AddSymbol(character);
                 //_model.Print((byte)character);
             }
-            _coder.Flush();
+            _coder.Flush(partMax);
+            output.Flush();
+            output.Close();
         }
 
         public void Expand(BinaryReader input, BinaryWriter output)

@@ -19,6 +19,7 @@ namespace ArithmeticCoder
             _contextKey = new ContextKey(_maxOrder);
             _lastContext = _contextKey;
 
+            _controlContext.Update(-Constants.EndOfPacket);
             _controlContext.Update(-Constants.FLUSH);
             _controlContext.Update(-Constants.DONE);
 
@@ -47,6 +48,7 @@ namespace ArithmeticCoder
 
             _contexts.Add(_contextKey, context0);
 
+            _controlContext.Update(-Constants.EndOfPacket);
             _controlContext.Update(-Constants.FLUSH);
             _controlContext.Update(-Constants.DONE);
 
@@ -91,7 +93,7 @@ namespace ArithmeticCoder
                 character = -character;
             }
 
-            if ( character != -1 && (index = table.Stats.IndexOf(new Stat((byte)character, 0))) >= 0 )
+            if ( character > 0 && (index = table.Stats.IndexOf(new Stat((byte)character, 0))) >= 0 )
             {
                 if (table.Stats[index].Count != 0)
                 {

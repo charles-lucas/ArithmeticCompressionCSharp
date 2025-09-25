@@ -1,4 +1,6 @@
-﻿namespace ArithmeticCoder
+﻿using System.Reflection.Metadata.Ecma335;
+
+namespace ArithmeticCoder
 {
     internal class Coder
     {
@@ -118,8 +120,31 @@
                 output = (~_low & 0x4000) != 0;
                 _output?.WriteBit(output);
             }
+            _underflowBits = 0;
             _output?.WriteBits(0, 16);
             _output?.Flush();
+        }
+
+        public void Flush(Int32 padToSize)
+        {
+            bool output = (_low & 0x4000) != 0;
+            _output?.WriteBit(output);
+            _underflowBits++;
+
+            while (_underflowBits-- > 0)
+            {
+                output = (~_low & 0x4000) != 0;
+                _output?.WriteBit(output);
+            }
+            _underflowBits = 0;
+            _output?.WriteBits(0, 16);
+            _output?.Flush();
+
+            while(_output != null && _output.Length < padToSize)
+            {
+                _output?.WriteByte(0x00);
+                _output?.Flush();
+            }
         }
 
         public void InitializeEncode()
@@ -156,6 +181,35 @@
         }
 
         public UInt64 UnderflowBits => _underflowBits;
+
+        public byte Mask
+        {
+            get
+            {
+                byte result = 0;
+                if (_output != null)
+                {
+                    result = _output.Mask;
+                }
+                return result;
+            }
+        }
+
+        public BinaryWriter OutputStream
+        {
+            set
+            {
+                _output = new BitStreamWriter(value);
+            }
+        }
+
+        public BinaryReader InputStream
+        {
+            set
+            {
+                _input = new BitStreamReader(value);
+            }
+        }
 
         private UInt16 _low;
         private UInt16 _high;

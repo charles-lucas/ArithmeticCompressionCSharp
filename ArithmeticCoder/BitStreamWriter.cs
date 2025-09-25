@@ -74,6 +74,22 @@
             }
         }
 
+        public void WriteByte(byte bite)
+        {
+            _stream.Write(bite);
+        }
+
+        public byte Mask => _mask;
+        public byte Rack => _rack;
+
+        public BinaryWriter OutPutStream
+        {
+            set
+            {
+                _stream = value;
+            }
+        }
+
         private byte _rack;
         private byte _mask;
         private BinaryWriter _stream;
