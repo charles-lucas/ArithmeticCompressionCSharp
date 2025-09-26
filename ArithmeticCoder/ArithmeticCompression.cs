@@ -132,6 +132,7 @@ namespace ArithmeticCoder
             bool flush = false;
             Int16 textCount = 0;
             Int32 parts = 0;
+            Int32 bitsLeftInMask = 0;
             string outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
             BinaryWriter output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
             Int32 extraByteForOverFLow;
@@ -207,7 +208,7 @@ namespace ArithmeticCoder
                     _model.Flush();
                     flush = false;
                 }
-                else if (echaracter == Constants.EndOfPacket)
+                else if (character == Constants.EndOfPacket)
                 {
                     _coder.Flush(partMax);
                     output.Flush();
@@ -221,7 +222,7 @@ namespace ArithmeticCoder
                     break;
                 }
                 
-                _model.Update((byte)character);
+                _model.Update(character);
                 _model.AddSymbol(character);
             }
             _coder.Flush(partMax);
@@ -276,12 +277,13 @@ namespace ArithmeticCoder
 
             while(true)
             {
-                do {
+                do
+                {
                     _model.GetSymbolScale(symbol);
                     count = _coder.GetCurrentCount(symbol);
                     character = _model.ConvertSymbolToInt(count, symbol);
                     _coder.RemoveSymbol(symbol);
-                } while(character == Constants.ESCAPE)
+                } while (character == Constants.ESCAPE);
 
                 if(character == Constants.DONE)
                 {
@@ -291,6 +293,7 @@ namespace ArithmeticCoder
                 {
                     input.Close();
                     currentInputName = String.Format("{0}-part{1}.bin", inputBaseName, part++);
+                    input = new BinaryReader(File.Open(currentInputName, FileMode.Open));
                     _coder = new Coder(false, input, null);
                 }
                 else if(character != Constants.FLUSH)

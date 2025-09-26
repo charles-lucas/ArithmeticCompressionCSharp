@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-
-namespace ArithmeticCoder
+﻿namespace ArithmeticCoder
 {
     internal class Coder
     {
