@@ -59,10 +59,7 @@ namespace ArithmeticCoder
                 }
             }
 
-            if (_model != null)
-            {
-                _compatabilityMode = _model.CompatabilityMode;
-            }
+            _compatabilityMode = _model.CompatabilityMode;
         }
 
         public ArithmeticCompression(UInt32 maxOrder, bool compatabilityMode = false)
@@ -235,7 +232,7 @@ namespace ArithmeticCoder
             output.Close();
         }
 
-        public void CompressSplitRollBack(BinaryReader input, string outputBaseName, Int32 partMax)
+        public void CompressSplitRollBack(BinaryReader input, string outputBaseName, Int32 partMax, bool pad = false)
         {
             Int32 character;
             Symbol symbol = new Symbol();
@@ -288,7 +285,7 @@ namespace ArithmeticCoder
                             _model.RollBack();
                             _coder.RollBack();
                             sizeOfPacket = _coder.OutputLength + outputList.Count;
-                        } while (sizeOfPacket < partMax);
+                        } while (sizeOfPacket <= partMax);
                         finalData = true;
                         index = 0;
                         leftOverInput.Enqueue(inputList[inputList.Count - 1]);
@@ -338,7 +335,7 @@ namespace ArithmeticCoder
                 }
                 else if (character == Constants.EndOfPacket)
                 {
-                    _coder.Flush(partMax);
+                    _coder.Flush(partMax, pad);
                     output.Flush();
                     output.Close();
                     outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
@@ -354,7 +351,7 @@ namespace ArithmeticCoder
                 _model.Update(character);
                 _model.AddSymbol(character);
             }
-            _coder.Flush(partMax);
+            _coder.Flush(partMax, pad);
             output.Flush();
             output.Close();
         }

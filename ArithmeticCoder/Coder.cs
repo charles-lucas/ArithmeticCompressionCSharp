@@ -184,7 +184,7 @@
             _output?.Flush(result);
         }
 
-        public void Flush(Int32 padToSize)
+        public void Flush(Int32 padToSize, bool pad = false)
         {
             bool output = (_low & 0x4000) != 0;
             _output?.WriteBit(output);
@@ -202,7 +202,7 @@
             }
             _output?.Flush();
 
-            while(_output != null && _output.Length < padToSize)
+            while(pad && _output != null && _output.Length < padToSize)
             {
                 _output?.WriteByte(0x00);
             }
