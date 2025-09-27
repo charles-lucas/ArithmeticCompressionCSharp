@@ -18,7 +18,6 @@ namespace ArithmeticCoder
             _order = Order.Model;
             _contextKey = new ContextKey(_maxOrder);
             _lastContext = _contextKey;
-
             
             _controlContext.Update(-Constants.FLUSH);
             _controlContext.Update(-Constants.DONE);
@@ -30,6 +29,9 @@ namespace ArithmeticCoder
             }
 
             _compatabilityMode = false;
+            _keepRollBack = false;
+            _rollBackActions = new Stack<RollBackItem>();
+            _rollBackContexts = new Stack<Context>();
         }
 
         public ModelOrderN(UInt32 maxOrder, bool compatability = false)
@@ -48,7 +50,6 @@ namespace ArithmeticCoder
 
             _contexts.Add(_contextKey, context0);
 
-            
             _controlContext.Update(-Constants.FLUSH);
             _controlContext.Update(-Constants.DONE);
             _controlContext.Update(-Constants.EndOfPacket);
@@ -59,8 +60,11 @@ namespace ArithmeticCoder
             }
 
             _compatabilityMode = compatability;
+            _keepRollBack = false;
+            _rollBackActions = new Stack<RollBackItem>();
+            _rollBackContexts = new Stack<Context>();
 
-            if(_compatabilityMode)
+            if (_compatabilityMode)
             {
                 _contexts[_contextKey].Update(new Stat(0x00, 0), false);
                 while(_contextKey.Key.Count < _contextKey.MaxLength)
@@ -115,7 +119,7 @@ namespace ArithmeticCoder
         {
             string json;
             StreamWriter outStream = new StreamWriter(output);
-            JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = false};
+            JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = false };
 
             json = JsonSerializer.Serialize(this, options);
             outStream.WriteLine(json);
@@ -193,6 +197,10 @@ namespace ArithmeticCoder
                     if (!_contexts.ContainsKey(_contextKey))
                     {
                         _contexts.Add(_contextKey, new Context());
+                        if (_keepRollBack)
+                        {
+                            _rollBackActions.Push(new RollBackAddSymbol(_contextKey));
+                        }
                     }
                 }
                 else
@@ -242,11 +250,23 @@ namespace ArithmeticCoder
             {
                 foreach (ContextKey key in _escapedContexts)
                 {
+                    if (_keepRollBack)
+                    {
+                        _contexts[key].SetRollBackCheckPoint(key);
+                        _rollBackContexts.Push(_contexts[key]);
+                    }
                     _contexts[key].Update((byte)character);
+
                 }
                 if (_order == Order.Model)
                 {
+                    if (_keepRollBack)
+                    {
+                        _contexts[_contextKey].SetRollBackCheckPoint(_contextKey);
+                        _rollBackContexts.Push(_contexts[_contextKey]);
+                    }
                     _contexts[_contextKey].Update((byte)character);
+                    
                 }
             }
             // Set context to max context
@@ -299,6 +319,53 @@ namespace ArithmeticCoder
             }
 
             return result;
+        }
+
+        public void SetRollBackCheckPoint()
+        {
+            byte[] scoreboard = new byte[_scoreboard.Length];
+            Array.Copy(_scoreboard, scoreboard, _scoreboard.Length);
+            RollBackContextKey rollBackItem = new RollBackContextKey(_contextKey, scoreboard);
+            _rollBackActions.Push(rollBackItem);
+            _keepRollBack = true;
+        }
+
+        public void RollBack()
+        {
+            RollBackItem? item = null;
+            Context? rollBackContext = null;
+
+            do
+            {
+                rollBackContext = _rollBackContexts.Pop();
+                if (rollBackContext != null)
+                {
+                    rollBackContext.RollBack();
+                }
+            } while (_rollBackContexts.Count > 0);
+
+            do
+            {
+                item = _rollBackActions.Pop();
+                if (item != null)
+                {
+                    if (item.GetType() == typeof(RollBackAddSymbol))
+                    {
+                        RollBackAddSymbol symbol = (RollBackAddSymbol)item;
+                        if (_contexts.ContainsKey(symbol.ContextKey))
+                        {
+                            _contexts.Remove(symbol.ContextKey);
+                        }
+                    }
+                    else if (item.GetType() == typeof(RollBackContextKey))
+                    {
+                        RollBackContextKey contextKey = (RollBackContextKey)item;
+                        _contextKey = contextKey.ContextKey;
+                        _scoreboard = contextKey.ScoreBoard;
+                    }
+                }
+            }while(_rollBackActions.Count > 0);
+            _keepRollBack = false;
         }
 
         public UInt128 DictionaryStats(StreamWriter stream)
@@ -400,6 +467,10 @@ namespace ArithmeticCoder
             if (!_contexts.ContainsKey(key))
             {
                 _contexts.Add(key, new Context());
+                if (_keepRollBack)
+                {
+                    _rollBackActions.Push(new RollBackAddSymbol(key));
+                }
             }
 
             if (_compatabilityMode)
@@ -411,6 +482,10 @@ namespace ArithmeticCoder
                     if (!_contexts.ContainsKey(lesser))
                     {
                         _contexts.Add(lesser, new Context());
+                        if (_keepRollBack)
+                        {
+                            _rollBackActions.Push(new RollBackAddSymbol(lesser));
+                        }
                     }
                     lesser = lesser.GetLesser();
                 }
@@ -466,5 +541,8 @@ namespace ArithmeticCoder
         private UInt32 _maxOrder;
         private ContextKey _lastContext;
         private bool _compatabilityMode;
+        private bool _keepRollBack;
+        private Stack<RollBackItem> _rollBackActions;
+        private Stack<Context> _rollBackContexts;
     }
 }

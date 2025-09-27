@@ -8,12 +8,16 @@ namespace ArithmeticCoder
         {
             _stats = new List<Stat>();
             _order = Order.Model;
+            _rollBackActions = new Stack<RollBackItem>();
+            _contextKey = null;
         }
 
         public Context(Order order)
         {
             _stats = new List<Stat>();
             _order = order;
+            _rollBackActions = new Stack<RollBackItem>();
+            _contextKey = null;
         }
 
         public Context(Stat stat)
@@ -21,6 +25,8 @@ namespace ArithmeticCoder
             _stats = new List<Stat>();
             _order = Order.Model;
             _stats.Add(stat);
+            _rollBackActions = new Stack<RollBackItem>();
+            _contextKey = null;
         }
 
         public Context(Stat stat, Order order)
@@ -28,12 +34,17 @@ namespace ArithmeticCoder
             _stats = new List<Stat>();
             _stats.Add(stat);
             _order = order;
+            _rollBackActions = new Stack<RollBackItem>();
+            _contextKey = null;
         }
 
         public void Update(Stat stat, bool increment = true)
         {
-            int index = _stats.IndexOf(stat);
-            int i = index;
+            Int32 index = _stats.IndexOf(stat);
+            Int32 i = index;
+            Int32 newPosition = 0;
+            Int32 oldPosition = 0;
+            bool created = false;
 
             //is the stat in the stats list
             if (index >= 0)
@@ -43,14 +54,19 @@ namespace ArithmeticCoder
                 //sort/swap to new location
                 //swap
                 SwapStats(i, index);
+                oldPosition = index;
+                newPosition = i;
             }
             else
             {
                 //add
                 _stats.Add(stat);
+                created = true;
                 index = _stats.Count - 1;
                 i = FindSwapIndex(index);
                 SwapStats(i, index);
+                oldPosition = index;
+                newPosition= i;
             }
             if(increment)
             {
@@ -60,9 +76,24 @@ namespace ArithmeticCoder
             {
                 Rescale();
             }
+            if (_keepRollBack)
+            {
+                _rollBackActions.Push(new RollBackUpdate(increment, newPosition, oldPosition, created));
+            }
         }
 
         public void Update(byte symbol) => Update(new Stat(symbol, 0));
+
+        public void Decrement(Stat stat)
+        {
+            Int32 index;
+
+            index = _stats.IndexOf(stat);
+            if (index >= 0)
+            {
+                _stats[index].Count--;
+            }
+        }
 
         public UInt16[] Totalize(byte[] scoreboard)
         {
@@ -125,6 +156,31 @@ namespace ArithmeticCoder
             return result;
         }
 
+        public void SetRollBackCheckPoint(ContextKey key)
+        {
+            _keepRollBack = true;
+            _contextKey = key;
+        }
+
+        public void RollBack()
+        {
+            RollBackItem? item = null;
+
+            while(_rollBackActions.Count > 0)
+            {
+                item = _rollBackActions.Pop();
+                if (item != null)
+                {
+                    if (item.GetType() == typeof(RollBackUpdate))
+                    {
+                        RollBackUpdate update = (RollBackUpdate)item;
+                        UndoUpdate(update);
+                    }
+                }
+            }
+            _keepRollBack = false;
+        }
+
         [JsonInclude]
         public List<Stat> Stats
         {  
@@ -149,6 +205,25 @@ namespace ArithmeticCoder
             {
                 _stats[index1] = index2Stat;
                 _stats[index2] = index1Stat;
+            }
+        }
+
+        private void UndoUpdate(RollBackUpdate? update)
+        {
+            if(update != null)
+            {
+                if(update.NewPosition != update.OldPosition)
+                {
+                    SwapStats(update.OldPosition, update.NewPosition);
+                }
+                if (update.Created)
+                {
+                    _stats.RemoveAt(update.OldPosition);
+                }
+                else if (update.Increment)
+                {
+                    _stats[update.OldPosition].Count--;
+                }
             }
         }
 
@@ -178,5 +253,8 @@ namespace ArithmeticCoder
 
         private List<Stat> _stats;
         private Order _order;
+        private bool _keepRollBack;
+        private Stack<RollBackItem> _rollBackActions;
+        private ContextKey? _contextKey;
     }
 }

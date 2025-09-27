@@ -2,11 +2,13 @@
 {
     internal class BitStreamReader
     {
-        public BitStreamReader(BinaryReader stream)
+        public BitStreamReader(BinaryReader stream, bool compatabilityMode = true)
         {
             _rack = 0x00;
             _mask = 0x80;
             _stream = stream;
+            _addedZeros = 0;
+            _compatabilityMode = compatabilityMode;
         }
 
         public bool ReadBit()
@@ -24,6 +26,17 @@
                 catch(System.IO.EndOfStreamException)
                 {
                     _rack = 0x00;
+                    _addedZeros++;
+
+                    if (_compatabilityMode)
+                    {
+                        throw new System.IO.EndOfStreamException();
+                    }
+                    else if (_addedZeros > 2)
+                    {
+                        throw new System.IO.EndOfStreamException();
+                    }
+
                 }
             }
 
@@ -41,5 +54,7 @@
         private byte _rack;
         private byte _mask;
         private BinaryReader _stream;
+        private bool _compatabilityMode;
+        private Int32 _addedZeros;
     }
 }

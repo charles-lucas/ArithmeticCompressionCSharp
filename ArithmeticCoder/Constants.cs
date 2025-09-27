@@ -10,5 +10,6 @@
         public const Int32 CompressionLimit = 90;
         public const Int32 EndOfPacketSpace = 8; // bytes
         public const Int16 EndOfPacket = -3;
+        public const Int32 NearEndPacketSize = 12;
     }
 }
