@@ -186,7 +186,7 @@ namespace ArithmeticCoder
             return result;
         }
 
-        private void DecrementOrder()
+        protected virtual void DecrementOrder()
         {
             if (_order == Order.Model)
             {
@@ -225,12 +225,12 @@ namespace ArithmeticCoder
             }
         }
 
-        public void Flush()
+        public virtual void Flush()
         {
             Flush(_contextKey);
         }
 
-        public void Flush(ContextKey contextKey)
+        public virtual void Flush(ContextKey contextKey)
         {
             ContextKey key;
             foreach(var stat in _contexts[contextKey].Stats)
@@ -244,7 +244,7 @@ namespace ArithmeticCoder
             _contexts[contextKey].Rescale();
         }
 
-        public void Update(Int32 character)
+        public virtual void Update(Int32 character)
         {
             if (character >= 0)
             {
@@ -283,7 +283,7 @@ namespace ArithmeticCoder
             }
         }
 
-        public void AddSymbol(Int32 character)
+        public virtual void AddSymbol(Int32 character)
         {
             if (character >= 0 && _order == Order.Model)
             {
@@ -530,15 +530,15 @@ namespace ArithmeticCoder
             set;
         }
 
-        private Dictionary<ContextKey, Context> _contexts;
+        protected Dictionary<ContextKey, Context> _contexts;
         private List<ContextKey> _escapedContexts;
-        private Context _allSymbolContext;
-        private Context _controlContext;
-        private byte[] _scoreboard;
-        private UInt16[] _totals;
-        private Order _order;
-        private ContextKey _contextKey;
-        private UInt32 _maxOrder;
+        protected Context _allSymbolContext;
+        protected Context _controlContext;
+        protected byte[] _scoreboard;
+        protected UInt16[] _totals;
+        protected Order _order;
+        protected ContextKey _contextKey;
+        protected UInt32 _maxOrder;
         private ContextKey _lastContext;
         private bool _compatabilityMode;
         private bool _keepRollBack;

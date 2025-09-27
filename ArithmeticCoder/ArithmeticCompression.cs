@@ -5,7 +5,7 @@ namespace ArithmeticCoder
     public class ArithmeticCompression
     {
         //Ctor for loading a model from JSON
-        public ArithmeticCompression(Stream modelStream)
+        public ArithmeticCompression(Stream modelStream, bool staticModel = false)
         {
             StreamReader inputReader = new StreamReader(modelStream);
             string? json;
@@ -20,7 +20,14 @@ namespace ArithmeticCoder
             json = inputReader.ReadLine();
             if(json != null)
             {
-                model = JsonSerializer.Deserialize<ModelOrderN>(json);
+                if (staticModel)
+                {
+                    model = JsonSerializer.Deserialize<ModelOrderN_Static>(json);
+                }
+                else
+                {
+                    model = JsonSerializer.Deserialize<ModelOrderN>(json);
+                }
                 if(model != null)
                 {
                     _model = model;
