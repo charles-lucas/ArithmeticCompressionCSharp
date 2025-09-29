@@ -2,13 +2,21 @@
 {
     internal class Coder
     {
-        public Coder(bool encode, BinaryReader input, BinaryWriter? output, bool compatabilityMode = true)
+        public Coder(bool encode, BinaryReader? input, BinaryWriter? output, bool compatabilityMode = true)
         {
-            _input = new BitStreamReader(input, compatabilityMode);
             _rollBackActions = new Stack<RollBackItem>();
             _compatabilityMode = compatabilityMode;
 
-            if(output != null)
+            if (input != null)
+            {
+                _input = new BitStreamReader(input, compatabilityMode);
+            }
+            else
+            {
+                _input = null;
+            }
+
+            if (output != null)
             {
                 _output = new BitStreamWriter(output);
             }
@@ -126,7 +134,10 @@
                 _high <<= 1;
                 _high |= 1;
                 _code <<= 1;
-                _code += (UInt16)(_input.ReadBit() ? 1 : 0);
+                if(_input != null)
+                {
+                    _code += (UInt16)(_input.ReadBit() ? 1 : 0);
+                }
             }
         }
 
@@ -221,7 +232,10 @@
             for (int i = 0; i < 16; i++)
             {
                 _code <<= 1;
-                _code += (UInt16)(_input.ReadBit() ? 1 : 0);
+                if (_input != null)
+                {
+                    _code += (UInt16)(_input.ReadBit() ? 1 : 0);
+                }
             }
 
             _low = 0;
@@ -290,7 +304,7 @@
         private UInt16 _high;
         private UInt16 _code;
         private UInt64 _underflowBits;
-        private BitStreamReader _input;
+        private BitStreamReader? _input;
         private BitStreamWriter? _output;
         private bool _keepRollBack;
         private Stack<RollBackItem> _rollBackActions;

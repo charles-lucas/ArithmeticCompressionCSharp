@@ -1,7 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
-
-namespace ArithmeticCoder
+﻿namespace ArithmeticCoder
 {
     public class ModelOrderN_Static : ModelOrderN
     {
