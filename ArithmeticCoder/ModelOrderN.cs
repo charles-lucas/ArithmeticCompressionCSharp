@@ -8,11 +8,12 @@ namespace ArithmeticCoder
         //Ctor for JSON 
         public ModelOrderN()
         {
+            _compatabilityMode = false;
             _maxOrder = 0;
             _contexts = new Dictionary<ContextKey, Context>();
             _escapedContexts = new List<ContextKey>();
-            _allSymbolContext = new Context(Order.AllSymbols);
-            _controlContext = new Context(Order.Control);
+            _allSymbolContext = new Context(Order.AllSymbols, _compatabilityMode);
+            _controlContext = new Context(Order.Control, _compatabilityMode);
             _scoreboard = new byte[256];
             _totals = new UInt16[16];
             _order = Order.Model;
@@ -28,7 +29,7 @@ namespace ArithmeticCoder
                 _allSymbolContext.Update((byte)bite);
             }
 
-            _compatabilityMode = false;
+            
             _keepRollBack = false;
             _rollBackActions = new Stack<RollBackItem>();
             _rollBackContexts = new Stack<Context>();
@@ -36,12 +37,13 @@ namespace ArithmeticCoder
 
         public ModelOrderN(UInt32 maxOrder, bool compatability = false)
         {
-            Context context0 = new Context();
+            _compatabilityMode = compatability;
+            Context context0 = new Context(_compatabilityMode);
             _maxOrder = maxOrder;
             _contexts = new Dictionary<ContextKey, Context>();
             _escapedContexts = new List<ContextKey>();
-            _allSymbolContext = new Context(Order.AllSymbols);
-            _controlContext = new Context(Order.Control);
+            _allSymbolContext = new Context(Order.AllSymbols, _compatabilityMode);
+            _controlContext = new Context(Order.Control, _compatabilityMode);
             _scoreboard = new byte[256];
             _totals = new UInt16[16];
             _order = Order.Model;
@@ -59,7 +61,7 @@ namespace ArithmeticCoder
                 _allSymbolContext.Update((byte)bite);
             }
 
-            _compatabilityMode = compatability;
+            
             _keepRollBack = false;
             _rollBackActions = new Stack<RollBackItem>();
             _rollBackContexts = new Stack<Context>();
@@ -72,11 +74,11 @@ namespace ArithmeticCoder
                     _contextKey = new ContextKey(_contextKey, 0x00);
                     if(_contextKey.Key.Count != _contextKey.MaxLength)
                     {
-                        _contexts.Add(_contextKey, new Context(new Stat(0x00, 0)));
+                        _contexts.Add(_contextKey, new Context(new Stat(0x00, 0), _compatabilityMode));
                     }
                     else
                     {
-                        _contexts.Add(_contextKey, new Context());
+                        _contexts.Add(_contextKey, new Context(_compatabilityMode));
                     }
                 }
             }
@@ -196,7 +198,7 @@ namespace ArithmeticCoder
                     _contextKey = _contextKey.GetLesser();
                     if (!_contexts.ContainsKey(_contextKey))
                     {
-                        _contexts.Add(_contextKey, new Context());
+                        _contexts.Add(_contextKey, new Context(_compatabilityMode));
                         if (_keepRollBack)
                         {
                             _rollBackActions.Push(new RollBackAddSymbol(_contextKey));
@@ -466,7 +468,7 @@ namespace ArithmeticCoder
             key = new ContextKey(key, character);
             if (!_contexts.ContainsKey(key))
             {
-                _contexts.Add(key, new Context());
+                _contexts.Add(key, _compatabilityMode));
                 if (_keepRollBack)
                 {
                     _rollBackActions.Push(new RollBackAddSymbol(key));
@@ -481,7 +483,7 @@ namespace ArithmeticCoder
                 {
                     if (!_contexts.ContainsKey(lesser))
                     {
-                        _contexts.Add(lesser, new Context());
+                        _contexts.Add(lesser, _compatabilityMode));
                         if (_keepRollBack)
                         {
                             _rollBackActions.Push(new RollBackAddSymbol(lesser));

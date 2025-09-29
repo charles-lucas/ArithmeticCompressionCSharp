@@ -4,15 +4,16 @@ namespace ArithmeticCoder
 {
     public class Context
     {
-        public Context()
+        public Context(bool CompatabilityMode = false)
         {
             _stats = new List<Stat>();
             _order = Order.Model;
             _rollBackActions = new Stack<RollBackItem>();
             _contextKey = null;
+            _compatabilityMode = false;
         }
 
-        public Context(Order order)
+        public Context(Order order, bool CompatabilityMode = false)
         {
             _stats = new List<Stat>();
             _order = order;
@@ -20,7 +21,7 @@ namespace ArithmeticCoder
             _contextKey = null;
         }
 
-        public Context(Stat stat)
+        public Context(Stat stat, bool CompatabilityMode = false)
         {
             _stats = new List<Stat>();
             _order = Order.Model;
@@ -29,7 +30,7 @@ namespace ArithmeticCoder
             _contextKey = null;
         }
 
-        public Context(Stat stat, Order order)
+        public Context(Stat stat, Order order, bool CompatabilityMode = false)
         {
             _stats = new List<Stat>();
             _stats.Add(stat);
@@ -145,13 +146,28 @@ namespace ArithmeticCoder
                 Rescale();
             }
 
-            for (i = 0; i < _stats.Count; i++)
+            if(_compatabilityMode)
             {
-                if (_stats[i].Count != 0)
+                //The book iterates from 0 to < MaxIndex, which misses the last element
+                for (i = 0; i < _stats.Count - 1; i++)
                 {
-                    scoreboard[_stats[i].Symbol] = 1;
+                    if (_stats[i].Count != 0)
+                    {
+                        scoreboard[_stats[i].Symbol] = 1;
+                    }
                 }
             }
+            else
+            {
+                for (i = 0; i < _stats.Count; i++)
+                {
+                    if (_stats[i].Count != 0)
+                    {
+                        scoreboard[_stats[i].Symbol] = 1;
+                    }
+                }
+            }
+
 
             return result;
         }
@@ -256,5 +272,6 @@ namespace ArithmeticCoder
         private bool _keepRollBack;
         private Stack<RollBackItem> _rollBackActions;
         private ContextKey? _contextKey;
+        private bool _compatabilityMode;
     }
 }
