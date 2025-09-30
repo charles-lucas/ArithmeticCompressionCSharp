@@ -468,7 +468,7 @@ namespace ArithmeticCoder
             key = new ContextKey(key, character);
             if (!_contexts.ContainsKey(key))
             {
-                _contexts.Add(key, _compatabilityMode));
+                _contexts.Add(key, new Context(_compatabilityMode));
                 if (_keepRollBack)
                 {
                     _rollBackActions.Push(new RollBackAddSymbol(key));
@@ -483,7 +483,7 @@ namespace ArithmeticCoder
                 {
                     if (!_contexts.ContainsKey(lesser))
                     {
-                        _contexts.Add(lesser, _compatabilityMode));
+                        _contexts.Add(lesser, new Context(_compatabilityMode));
                         if (_keepRollBack)
                         {
                             _rollBackActions.Push(new RollBackAddSymbol(lesser));
