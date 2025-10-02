@@ -39,6 +39,19 @@ namespace ArithmeticCoder
             _contextKey = null;
         }
 
+        //* This routine is called to update the count for a particular symbol
+        //* in a particular table.  The table is one of the current contexts,
+        //* and the symbol is the last symbol encoded or decoded.  In principle
+        //* this is a fairly simple routine, but a couple of complications make
+        //* things a little messier.  First of all, the given table may not
+        //* already have the symbol defined in its statistics table.  If it
+        //* doesn't, the stats table has to grow and have the new guy added
+        //* to it.  Secondly, the symbols are kept in sorted order by count
+        //* in the table so that the table can be trimmed during the flush
+        //* operation.  When this symbol is incremented, it might have to be moved
+        //* up to reflect its new rank.  Finally, since the counters are only
+        //* bytes, if the count reaches 255, the table absolutely must be rescaled
+        //* to get the counts back down to a reasonable level.
         public void Update(Stat stat, bool increment = true)
         {
             Int32 index = _stats.IndexOf(stat);
@@ -83,6 +96,19 @@ namespace ArithmeticCoder
             }
         }
 
+        //* This routine is called to update the count for a particular symbol
+        //* in a particular table.  The table is one of the current contexts,
+        //* and the symbol is the last symbol encoded or decoded.  In principle
+        //* this is a fairly simple routine, but a couple of complications make
+        //* things a little messier.  First of all, the given table may not
+        //* already have the symbol defined in its statistics table.  If it
+        //* doesn't, the stats table has to grow and have the new guy added
+        //* to it.  Secondly, the symbols are kept in sorted order by count
+        //* in the table so that the table can be trimmed during the flush
+        //* operation.  When this symbol is incremented, it might have to be moved
+        //* up to reflect its new rank.  Finally, since the counters are only
+        //* bytes, if the count reaches 255, the table absolutely must be rescaled
+        //* to get the counts back down to a reasonable level.
         public void Update(byte symbol) => Update(new Stat(symbol, 0));
 
         public void Decrement(Stat stat)
@@ -96,6 +122,16 @@ namespace ArithmeticCoder
             }
         }
 
+        //* This routine has the job of creating a cumulative totals table for
+        //* a given context.  The cumulative low and high for symbol c are going to
+        //* be stored in totals[c+2] and totals[c+1].  Locations 0 and 1 are
+        //* reserved for the special ESCAPE symbol.  The ESCAPE symbol
+        //* count is calculated dynamically, and changes based on what the
+        //* current context looks like.  Note also that this routine ignores
+        //* any counts for symbols that have already shown up in the scoreboard,
+        //* and it adds all new symbols found here to the scoreboard.  This
+        //* allows us to exclude counts of symbols that have already appeared in
+        //*  higher order contexts, improving compression quite a bit.
         public UInt16[] Totalize(byte[] scoreboard)
         {
             UInt16[] result = new UInt16[258];
@@ -255,6 +291,17 @@ namespace ArithmeticCoder
             return result;
         }
 
+        //* Rescaling the table needs to be done for one of three reasons.
+        //* First, if the maximum count for the table has exceeded 16383, it
+        //* means that arithmetic coding using 16 and 32 bit registers might
+        //* no longer work.  Secondly, if an individual symbol count has
+        //* reached 255, it will no longer fit in a byte.  Third, if the
+        //* current model isn't compressing well, the compressor program may
+        //* want to rescale all tables in order to give more weight to newer
+        //* statistics.  All this routine does is divide each count by 2.
+        //* If any counts drop to 0, the counters can be removed from the
+        //* stats table, but only if this is a leaf context.  Otherwise, we
+        //* might cut a link to a higher order table.
         public void Rescale()
         {
             foreach (Stat stat in _stats)

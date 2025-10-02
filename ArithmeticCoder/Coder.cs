@@ -72,6 +72,14 @@
             }
         }
 
+        //* This routine is called to encode a symbol.  The symbol is passed
+        //* in the SYMBOL structure as a low count, a high count, and a range,
+        //* instead of the more conventional probability ranges.  The encoding
+        //* process takes two steps.  First, the values of high and low are
+        //* updated to take into account the range restriction created by the
+        //* new symbol.  Then, as many bits as possible are shifted out to
+        //* the output stream.  Finally, high and low are stable again and
+        //* the routine returns.
         public void Encode(Symbol symbol, List<byte> result)
         {
             Int64 range = (_high - _low) + 1;
@@ -109,6 +117,10 @@
             }
         }
 
+        //* Just figuring out what the present symbol is doesn't remove
+        //* it from the input bit stream.  After the character has been
+        //* decoded, this routine has to be called to remove it from the
+        //* input stream.
         public void RemoveSymbol(Symbol symbol)
         {
             Int64 range = (_high - _low) + 1;
@@ -141,6 +153,10 @@
             }
         }
 
+        //* When decoding, this routine is called to figure out which symbol
+        //* is presently waiting to be decoded.  This routine expects to get
+        //* the current model scale in the s->scale parameter, and it returns
+        //* a count that corresponds to the present floating point code;
         public int GetCurrentCount(Symbol symbol)
         {
             Int64 range;
@@ -157,6 +173,9 @@
 
         }
 
+        //* At the end of the encoding process, there are still significant
+        //* bits left in the high and low registers.  We output two bits,
+        //* plus as many underflow bits as are necessary.
         public void Flush()
         {
             bool output = (_low & 0x4000) != 0;
@@ -219,6 +238,10 @@
             }
         }
 
+        //* This routine must be called to initialize the encoding process.
+        //* The high register is initialized to all 1s, and it is assumed that
+        //* it has an infinite string of 1s to be shifted into the lower bit
+        //* positions when needed.
         public void InitializeEncode()
         {
             _low = 0;
@@ -226,6 +249,10 @@
             _underflowBits = 0;
         }
 
+        //* This routine is called to initialize the state of the arithmetic
+        //* decoder.  This involves initializing the high and low registers
+        //* to their conventional starting values, plus reading the first
+        //* 16 bits from the input stream into the code value.
         public void InitializeDecode()
         {
             _code = 0;

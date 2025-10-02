@@ -95,6 +95,27 @@ namespace ArithmeticCoder
             _model = model;
         }
 
+        /*
+        * The main procedure is similar to the main found in ARITH1E.C.  It has
+        * to initialize the coder and the model.  It then sits in a loop
+        reading
+        * input symbols and encoding them.  One difference is that every 256
+        * symbols a compression check is performed.  If the compression ratio
+        * falls below 10%, a flush character is encoded.  This flushes the
+        encod
+        * ing model, and will cause the decoder to flush its model when the
+        * file is being expanded.  The second difference is that each symbol is
+        * repeatedly encoded until a successful encoding occurs.  When trying
+        to
+        * encode a character in a particular order, the model may have to
+        * transmit an ESCAPE character.  If this is the case, the character has
+        * to be retransmitted using a lower order.  This process repeats until
+        a
+        * successful match is found of the symbol in a particular context.
+        * Usually this means going down no further than the order -1 model.
+        * However, the FLUSH and DONE symbols drop back to the order -2 model.
+        *
+        */
         public void Compress(BinaryReader input, BinaryWriter output)
         {
             Int32 character;
@@ -518,6 +539,18 @@ namespace ArithmeticCoder
             _coder?.Flush(output);
         }
 
+        /*
+        * The main loop for expansion is very similar to the expansion
+        * routine used in the simpler compression program, ARITH1E.C.  The
+        * routine first has to initialize the the arithmetic coder and the
+        * model.  The decompression loop differs in a couple of respect.
+        * First of all, it handles the special ESCAPE character, by
+        * removing them from the input bit stream but just throwing them
+        * away otherwise.  Secondly, it handles the special FLUSH character.
+        * Once the main decoding loop is done, the cleanup code is called,
+        * and the program exits.
+        *
+        */
         public void Expand(BinaryReader input, BinaryWriter output)
         {
             Symbol symbol = new Symbol();
@@ -696,6 +729,14 @@ namespace ArithmeticCoder
             CompressionStatus?.Invoke(this, ea);
         }
 
+        /*
+        * This routine is called once every 256 input symbols.  Its job is to
+        * check to see if the compression ratio falls below 10%.  If the
+        * output size is 90% of the input size, it means not much compression
+        * is taking place, so we probably ought to flush the statistics in the
+        * model to allow for more current statistics to have greater impact.
+        * This heuristic approach does seem to have some effect.
+        */
         private bool CheckCompression(BinaryReader input, BinaryWriter output)
         {
             bool result = true;

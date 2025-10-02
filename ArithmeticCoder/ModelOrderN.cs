@@ -84,6 +84,19 @@ namespace ArithmeticCoder
             }
         }
 
+        //* This routine is called when a given symbol needs to be encoded.
+        //* It is the job of this routine to find the symbol in the context
+        //* table associated with the current table, and return the low and
+        //* high counts associated with that symbol, as well as the scale.
+        //* Finding the table is simple.  Unfortunately, once I find the table,
+        //* I have to build the table of cumulative counts, which is
+        //* expensive, and is done elsewhere.  If the symbol is found in the
+        //* table, the appropriate counts are returned.  If the symbol is
+        //* not found, the ESCAPE symbol probabilities are returned, and
+        //* the current order is reduced.  Note also the kludge to support
+        //* the order -2 character set, which consists of negative numbers
+        //* instead of unsigned chars.  This insures that no match will ever
+        //* be found for the EOF or FLUSH symbols in  any "normal" table.
         public bool ConvertIntToSymbol(Int32 character, Symbol symbol)
         {
             int index;
@@ -149,6 +162,11 @@ namespace ArithmeticCoder
             _lastContext = _contextKey;
         }
 
+        //* This routine is called when decoding an arithmetic number.  In
+        //* order to decode the present symbol, the current scale in the
+        //* model must be determined.  This requires looking up the current
+        //* table, then building the totals table.  Once that is done, the
+        //* cumulative total table has the symbol scale at element 0.
         public void GetSymbolScale(Symbol symbol)
         {
             Context table = GetCurrentContext();
@@ -227,11 +245,21 @@ namespace ArithmeticCoder
             }
         }
 
+        //* This routine is called to flush the whole model, which it does
+        //* by calling the recursive flush routine starting at the order 0
+        //* table.
         public virtual void Flush()
         {
+            //XXX FIXME should flush entire model
             Flush(_contextKey);
         }
 
+        //* This routine is called when the entire model is to be flushed.
+        //* This is done in an attempt to improve the compression ratio by
+        //* giving greater weight to upcoming statistics.  This routine
+        //* starts at the given table, and recursively calls itself to
+        //* rescale every table in its list of links.  The table itself
+        //* is then rescaled.
         public virtual void Flush(ContextKey contextKey)
         {
             ContextKey key;
@@ -246,6 +274,16 @@ namespace ArithmeticCoder
             _contexts[contextKey].Rescale();
         }
 
+        //* This routine is called to increment the counts for the current
+        //* contexts.  It is called after a character has been encoded or
+        //* decoded.  All it does is call update_table for each of the
+        //* current contexts, which does the work of incrementing the count.
+        //* This particular version of update_model() practices update exclusion,
+        //* which means that if lower order models weren't used to encode
+        //* or decode the character, they don't get their counts updated.
+        //* This seems to improve compression performance quite a bit.
+        //* To disable update exclusion, the loop would be changed to run
+        //* from 0 to max_order, instead of current_order to max_order.
         public virtual void Update(Int32 character)
         {
             if (character >= 0)
@@ -285,6 +323,18 @@ namespace ArithmeticCoder
             }
         }
 
+        //* After the model has been updated for a new character, this routine
+        //* is called to "shift" into the new context.  For example, if the
+        //* last context was "ABC", and the symbol 'D' had just been processed,
+        //* this routine would want to update the context pointers to that
+        //* context[1]=="D", contexts[2]=="CD" and contexts[3]=="BCD".  The
+        //* potential problem is that some of these tables may not exist.
+        //* The way this is handled is by the shift_to_next_context routine.
+        //* It is passed a pointer to the "ABC" context, along with the symbol
+        //* 'D', and its job is to return a pointer to "BCD".  Once we have
+        //* "BCD", we can follow the lesser context pointers in order to get
+        //* the pointers to "CD" and "C".  The hard work was done in
+        //* shift_to_context().
         public virtual void AddSymbol(Int32 character)
         {
             if (character >= 0 && _order == Order.Model)
@@ -293,6 +343,19 @@ namespace ArithmeticCoder
             }
         }
 
+        //* This routine is called during decoding.  It is given a count that
+        //* came out of the arithmetic decoder, and has to find the symbol that
+        //* matches the count.  The cumulative totals are already stored in the
+        //* totals[] table, from the call to get_symbol-scale, so this routine
+        //* just has to look through that table.  Once the match is found,
+        //* the appropriate character is returned to the caller.  Two possible
+        //* complications.  First, the character might be the ESCAPE character,
+        //* in which case the current_order has to be decremented.  The other
+        //* complication.  First, the character might be the ESCAPE character,
+        //* in which case the current_order has to be decremented.  The other
+        //* complication is that the order might be -2, in which case we return
+        //* the negative of the symbol so it isn't confused with a normal
+        //* symbol.
         public Int32 ConvertSymbolToInt(Symbol symbol)
         {
             Int32 character;
