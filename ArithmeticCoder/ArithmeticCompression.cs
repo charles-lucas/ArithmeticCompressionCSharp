@@ -18,7 +18,7 @@ namespace ArithmeticCoder
     public class ArithmeticCompression
     {
         //Ctor for loading a model from JSON
-        public ArithmeticCompression(Stream modelStream, bool staticModel = false)
+        public ArithmeticCompression(Stream modelStream, bool compatabilityMode, bool staticModel = false)
         {
             StreamReader inputReader = new StreamReader(modelStream);
             string? json;
@@ -26,7 +26,7 @@ namespace ArithmeticCoder
             ContextKey? contextKey;
             Context? context;
             bool done = false;
-            _compatabilityMode = false;
+            _compatabilityMode = compatabilityMode;
             _static = staticModel;
             
             _model = new ModelOrderN(0);
@@ -754,7 +754,7 @@ namespace ArithmeticCoder
         private bool _compatabilityMode;
         private bool _static;
 
-        private Queue<Int32> _inputQue;
+        private Queue<Int32>? _inputQue;
         private AutoResetEvent _inputAdded = new AutoResetEvent(false);
 
         Int64 _localInputMarker;
