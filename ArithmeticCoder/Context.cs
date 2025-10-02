@@ -261,9 +261,12 @@ namespace ArithmeticCoder
             {
                 stat.Flush();
             }
-            for (int i = _stats.Count - 1; _stats[i].Count == 0 && i >= 0; i--)
+            if(!_compatabilityMode)
             {
-                _stats.RemoveAt(i);
+                for (int i = _stats.Count - 1; _stats[i].Count == 0 && i >= 0; i--)
+                {
+                    _stats.RemoveAt(i);
+                }
             }
         }
 
