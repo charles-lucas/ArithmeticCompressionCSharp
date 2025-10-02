@@ -138,6 +138,8 @@ namespace ArithmeticCoder
             return result;
         }
 
+        public bool IsMaxOrder() => (_maxLength == _key.Count)
+
         public override int GetHashCode()
         {
             //return PolynomialHash(2147483647, 5);

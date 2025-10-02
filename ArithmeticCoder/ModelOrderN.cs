@@ -589,10 +589,54 @@ namespace ArithmeticCoder
             System.Console.WriteLine("Key:\t{0}\n", _contextKey.ToString());
         }
 
+        [JsonInclude]
+        public ContextKey GetBestKey
+        {
+            get{
+                ContextKey result = _lastContext;
+                UInt128 max = 0;
+                UInt64 value = 0;
+
+                foreach(var contextKey in _contexts.Keys)
+                {
+                    if(contextKey.IsMaxOrder())
+                    {
+                        value = SumContext(contextKey);
+                        if(value > max)
+                        {
+                            result = contextKey;
+                            max = value;
+                        }
+                    }
+                }
+            }
+            set
+            {
+                _bestKey = value;
+            }
+        }
+
+        private UInt64 SumContex(ContextKey? key)
+        {
+            UInt64 result = 0;
+            if( key != null && !key.Empty() )
+            {
+                //XXX FIXME should implement as iteration instead of recurision
+                result = SumContext(key->GetLesser());
+                foreach(var stat in _stats)
+                {
+                    result += stat.Count;
+                }
+            }
+
+            return result;
+        }
+
+        [JsonInclude]
         public bool CompatabilityMode
         { 
-            get;
-            set;
+            get { return _compatabilityMode; }
+            set { _compatabilityMode = value; }
         }
 
         protected Dictionary<ContextKey, Context> _contexts;
@@ -609,5 +653,6 @@ namespace ArithmeticCoder
         private bool _keepRollBack;
         private Stack<RollBackItem> _rollBackActions;
         private Stack<Context> _rollBackContexts;
+        ContextKey? _bestKey;
     }
 }
