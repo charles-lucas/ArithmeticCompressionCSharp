@@ -96,4 +96,20 @@
         private byte _rack;
         private byte _mask;
     }
+
+    internal class RollBackCompressionTracker : RollBackItem
+    {
+        public RollBackCompressionTracker(UInt64 inputBytes, UInt64 outputBytes)
+        {
+            _inputBytes = inputBytes;
+            _outputBytes = outputBytes;
+        }
+
+        public UInt64 InputBytes => _inputBytes;
+
+        public UInt64 OutputBytes => _outputBytes;
+
+        private UInt64 _inputBytes;
+        private UInt64 _outputBytes;
+    }
 }

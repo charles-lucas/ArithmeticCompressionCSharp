@@ -21,6 +21,7 @@
                 try
                 {
                     value = _stream.ReadByte();
+                    CompressionTracker.Instance.IncrementInput();
                     _rack = (byte)value;
                 }
                 catch(System.IO.EndOfStreamException)
@@ -36,7 +37,7 @@
                     {
                         throw new System.IO.EndOfStreamException();
                     }
-
+                    CompressionTracker.Instance.IncrementInput();
                 }
             }
 

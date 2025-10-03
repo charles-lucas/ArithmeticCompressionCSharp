@@ -606,7 +606,7 @@ namespace ArithmeticCoder
         }
 
         [JsonInclude]
-        public ContextKey GetBestKey
+        public ContextKey BestKey
         {
             get{
                 ContextKey result = _lastContext;

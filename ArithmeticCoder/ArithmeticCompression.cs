@@ -129,7 +129,7 @@ namespace ArithmeticCoder
             {
                 if (!_static && (++textCount & 0x0ff) == 0)
                 {
-                    flush = CheckCompression(input, output);
+                    flush = CheckCompression();
                 }
 
                 if (!flush)
@@ -137,6 +137,7 @@ namespace ArithmeticCoder
                     try
                     {
                         character = input.ReadByte();
+                        CompressionTracker.Instance.IncrementInput();
                     }
                     catch (EndOfStreamException)
                     {
@@ -190,7 +191,7 @@ namespace ArithmeticCoder
             {
                 if (!_static && (++textCount & 0x0ff) == 0)
                 {
-                    flush = CheckCompression(input, output);
+                    flush = CheckCompression();
                 }
 
                 if (!flush)
@@ -229,6 +230,7 @@ namespace ArithmeticCoder
                         try
                         {
                             character = input.ReadByte();
+                            CompressionTracker.Instance.IncrementInput();
                         }
                         catch (EndOfStreamException)
                         {
@@ -298,7 +300,7 @@ namespace ArithmeticCoder
             {
                 if (!_static && (++textCount & 0x0ff) == 0)
                 {
-                    flush = CheckCompression(input, output);
+                    flush = CheckCompression();
                 }
 
                 if (!flush)
@@ -310,8 +312,10 @@ namespace ArithmeticCoder
                         {
                             try
                             {
+                                CompressionTracker.Instance.SetRollBackCheckPoint();
                                 character = input.ReadByte();
                                 inputList.Add(character);
+                                CompressionTracker.Instance.IncrementInput();
                             }
                             catch (EndOfStreamException)
                             {
@@ -327,6 +331,7 @@ namespace ArithmeticCoder
                             inputList.RemoveAt(inputList.Count - 1);
                             _model.RollBack();
                             _coder.RollBack();
+                            CompressionTracker.Instance.RollBack();
                             sizeOfPacket = _coder.OutputLength + outputList.Count;
                         } while (sizeOfPacket <= partMax);
                         finalData = true;
@@ -343,6 +348,7 @@ namespace ArithmeticCoder
                             try
                             {
                                 character = input.ReadByte();
+                                CompressionTracker.Instance.IncrementInput();
                             }
                             catch (EndOfStreamException)
                             {
@@ -353,10 +359,12 @@ namespace ArithmeticCoder
                         else if((!finalData) && leftOverInput.Count > 0)
                         {
                             character = leftOverInput.Dequeue();
+                            CompressionTracker.Instance.IncrementInput();
                         }
                         else
                         {
                             character = inputList[index++];
+                            CompressionTracker.Instance.IncrementInput();
                         }
                     }
                 }
@@ -422,7 +430,7 @@ namespace ArithmeticCoder
 
                     if (!_static && (++textCount & 0x0ff) == 0)
                     {
-                        flush = CheckCompression(input, output);
+                        flush = CheckCompression();
                     }
 
                     if (!flush)
@@ -432,8 +440,10 @@ namespace ArithmeticCoder
 
                             if(input.Count > 0)
                             {
+                                CompressionTracker.Instance.SetRollBackCheckPoint();
                                 character = input.Peek();
                                 inputList.Add(character);
+                                CompressionTracker.Instance.IncrementInput();
                             }
                             else
                             {
@@ -448,6 +458,7 @@ namespace ArithmeticCoder
                             inputList.RemoveAt(inputList.Count - 1);
                             _model.RollBack();
                             _coder.RollBack();
+                            CompressionTracker.Instance.RollBack();
                             sizeOfPacket = _coder.OutputLength + outputList.Count;
                             if (sizeOfPacket <= partMax)
                             {
@@ -469,6 +480,7 @@ namespace ArithmeticCoder
                     if(input.Count > 0)
                     {
                         character = input.Dequeue();
+                        CompressionTracker.Instance.IncrementInput();
                     }
                     else
                     {
@@ -511,6 +523,7 @@ namespace ArithmeticCoder
                 if (!flush)
                 {
                     character = input[index++];
+                    CompressionTracker.Instance.IncrementInput();
                 }
                 else
                 {
@@ -575,6 +588,7 @@ namespace ArithmeticCoder
                 if(character != Constants.FLUSH)
                 {
                     output.Write((byte)character);
+                    CompressionTracker.Instance.IncrementOutput();
                 }
                 else
                 {
@@ -620,6 +634,7 @@ namespace ArithmeticCoder
                 else if(character != Constants.FLUSH)
                 {
                     output.Write((byte)character);
+                    CompressionTracker.Instance.IncrementOutput();
                 }
                 else
                 {
@@ -737,44 +752,19 @@ namespace ArithmeticCoder
         * model to allow for more current statistics to have greater impact.
         * This heuristic approach does seem to have some effect.
         */
-        private bool CheckCompression(BinaryReader input, BinaryWriter output)
+        private bool CheckCompression()
         {
-            bool result = true;
-            Int64 totalInputBytes;
-            Int64 totalOutputBytes;
-            Int64 localRatio;
+            bool result;
+            UInt64 inputBytes;
+            UInt64 outputBytes;
+            UInt64 localRatio;
 
-            totalInputBytes = input.BaseStream.Position - _localInputMarker;
-            totalOutputBytes = output.BaseStream.Position - _localOutputMarker;
-
-            if (totalOutputBytes == 0)
-            {
-                totalOutputBytes = 1;
-            }
-
-            localRatio = (totalOutputBytes * 100) / totalInputBytes;
-            _localInputMarker = input.BaseStream.Position;
-            _localOutputMarker = output.BaseStream.Position;
+            inputBytes = CompressionTracker.Instance.InputBytes;
+            outputBytes = CompressionTracker.Instance.OutputBytes;
+            localRatio = (outputBytes * 100) / inputBytes;
 
             result = localRatio > Constants.CompressionLimit;
-
-            return result;
-        }
-
-        private bool CheckCompression(List<Int32> input, List<byte> output)
-        {
-            bool result = false;
-
-            //XXX FIXME need to think how this works when using lists...
-
-            return result;
-        }
-
-        private bool CheckCompression(Queue<Int32> input, List<byte> output)
-        {
-            bool result = false;
-
-            //XXX FIXME need to think how this works when using lists...
+            CompressionTracker.Instance.Reset();
 
             return result;
         }
@@ -797,8 +787,5 @@ namespace ArithmeticCoder
 
         private Queue<Int32>? _inputQue;
         private AutoResetEvent _inputAdded = new AutoResetEvent(false);
-
-        Int64 _localInputMarker;
-        Int64 _localOutputMarker;
     }
 }

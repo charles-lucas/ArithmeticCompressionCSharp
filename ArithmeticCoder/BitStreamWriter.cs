@@ -23,6 +23,7 @@
             if (_mask == 0x00)
             {
                 _stream.Write(_rack);
+                CompressionTracker.Instance.IncrementOutput();
                 _mask = 0x80;
                 _rack = 0x00;
                 bitCount += 8;
@@ -49,6 +50,7 @@
             if (_mask == 0x00)
             {
                 output.Add(_rack);
+                CompressionTracker.Instance.IncrementOutput();
                 _mask = 0x80;
                 _rack = 0x00;
                 bitCount += 8;
@@ -76,6 +78,7 @@
                 if(_mask == 0x00)
                 {
                     _stream.Write(_rack);
+                    CompressionTracker.Instance.IncrementOutput();
                     _rack = 0x00;
                     _mask = 0x80;
                 }
@@ -97,6 +100,7 @@
                 if (_mask == 0x00)
                 {
                     output.Add(_rack);
+                    CompressionTracker.Instance.IncrementOutput();
                     _rack = 0x00;
                     _mask = 0x80;
                 }
@@ -109,6 +113,7 @@
             if(_mask != 0x80)
             {
                 _stream.Write(_rack);
+                CompressionTracker.Instance.IncrementOutput();
             }
             _stream.Flush();
         }
@@ -118,6 +123,7 @@
             if (_mask != 0x80)
             {
                 output.Add(_rack);
+                CompressionTracker.Instance.IncrementOutput();
             }
             _mask = 0x80;
         }
@@ -166,6 +172,7 @@
         public void WriteByte(byte bite)
         {
             _stream.Write(bite);
+            CompressionTracker.Instance.IncrementOutput();
         }
 
         public byte Mask => _mask;
