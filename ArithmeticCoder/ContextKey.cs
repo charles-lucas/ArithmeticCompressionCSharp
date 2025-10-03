@@ -138,7 +138,7 @@ namespace ArithmeticCoder
             return result;
         }
 
-        public bool IsMaxOrder() => (_maxLength == _key.Count)
+        public bool IsMaxOrder() => (_maxLength == _key.Count);
 
         public override int GetHashCode()
         {

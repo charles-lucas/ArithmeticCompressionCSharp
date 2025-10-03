@@ -589,6 +589,22 @@ namespace ArithmeticCoder
             System.Console.WriteLine("Key:\t{0}\n", _contextKey.ToString());
         }
 
+        private UInt64 SumContext(ContextKey? key)
+        {
+            UInt64 result = 0;
+            if (key != null && !key.Empty())
+            {
+                //XXX FIXME should implement as iteration instead of recurision
+                result = SumContext(key.GetLesser());
+                foreach (var stat in _contexts[key].Stats)
+                {
+                    result += stat.Count;
+                }
+            }
+
+            return result;
+        }
+
         [JsonInclude]
         public ContextKey GetBestKey
         {
@@ -609,27 +625,13 @@ namespace ArithmeticCoder
                         }
                     }
                 }
+
+                return result;
             }
             set
             {
                 _bestKey = value;
             }
-        }
-
-        private UInt64 SumContex(ContextKey? key)
-        {
-            UInt64 result = 0;
-            if( key != null && !key.Empty() )
-            {
-                //XXX FIXME should implement as iteration instead of recurision
-                result = SumContext(key->GetLesser());
-                foreach(var stat in _stats)
-                {
-                    result += stat.Count;
-                }
-            }
-
-            return result;
         }
 
         [JsonInclude]
