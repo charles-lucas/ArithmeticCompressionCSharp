@@ -30,8 +30,6 @@ namespace ArithmeticCoder
         {
             _inputBytes = 0;
             _outputBytes = 0;
-            _keepRollBack = false;
-            _rollBackStack.Clear();
         }
 
         public void SetRollBackCheckPoint()
@@ -43,7 +41,7 @@ namespace ArithmeticCoder
         {
             if (_keepRollBack)
             {
-                RollBackCompressionTracker tracker = new RollBackCompressionTracker(_inputBytes, _outputBytes);
+                RollBackCompressionTracker tracker = new RollBackCompressionTracker(_inputBytes, _outputBytes, _keepRollBack);
                 _rollBackStack.Push(tracker);
             }
             _inputBytes++;
@@ -53,7 +51,7 @@ namespace ArithmeticCoder
         {
             if (_keepRollBack)
             {
-                RollBackCompressionTracker tracker = new RollBackCompressionTracker(_inputBytes, _outputBytes);
+                RollBackCompressionTracker tracker = new RollBackCompressionTracker(_inputBytes, _outputBytes, _keepRollBack);
                 _rollBackStack.Push(tracker);
             }
             _outputBytes++;

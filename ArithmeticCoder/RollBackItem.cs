@@ -99,17 +99,21 @@
 
     internal class RollBackCompressionTracker : RollBackItem
     {
-        public RollBackCompressionTracker(UInt64 inputBytes, UInt64 outputBytes)
+        public RollBackCompressionTracker(UInt64 inputBytes, UInt64 outputBytes, bool keepRollBack)
         {
             _inputBytes = inputBytes;
             _outputBytes = outputBytes;
+            _keepRollBack = keepRollBack;
         }
 
         public UInt64 InputBytes => _inputBytes;
 
         public UInt64 OutputBytes => _outputBytes;
 
+        public bool KeepRollBack => _keepRollBack;
+
         private UInt64 _inputBytes;
         private UInt64 _outputBytes;
+        private bool _keepRollBack;
     }
 }
