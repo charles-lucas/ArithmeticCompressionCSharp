@@ -172,112 +172,7 @@ namespace ArithmeticCoder
             _coder.Flush();
         }
 
-        public void CompressSplit(BinaryReader input, string outputBaseName, Int32 partMax)
-        {
-            Int32 character;
-            Symbol symbol = new Symbol();
-            bool escaped;
-            bool flush = false;
-            Int16 textCount = 0;
-            Int32 parts = 0;
-            Int32 bitsLeftInRack = 0;
-            string outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
-            BinaryWriter output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
-            Int32 extraByteForOverFLow;
-
-            _coder = new Coder(true, input, output, _compatabilityMode);
-
-            while (true)
-            {
-                if (!_static && (++textCount & 0x0ff) == 0)
-                {
-                    flush = CheckCompression();
-                }
-
-                if (!flush)
-                {
-                    if (_coder.UnderflowBits > 0)
-                    {
-                        for(byte bite = _coder.Mask; bite > 0;  bite >>= 1)
-                        {
-                            bitsLeftInRack++;
-                        }
-                        extraByteForOverFLow = (Int32)_coder.UnderflowBits - bitsLeftInRack;
-                        if(extraByteForOverFLow > 0)
-                        {
-                            extraByteForOverFLow = extraByteForOverFLow / 8 + 2;
-                        }
-                        else
-                        {
-                            extraByteForOverFLow = 1;
-                        }
-                    }
-                    else if(_coder.Mask != 0x80)
-                    {
-                        extraByteForOverFLow = 1;
-                    }
-                    else
-                    {
-                        extraByteForOverFLow = 0;
-                    }
-
-                    if ((_coder.OutputLength + extraByteForOverFLow + Constants.EndOfPacketSpace) > partMax)
-                    {
-                        character = Constants.EndOfPacket;
-                    }
-                    else
-                    {
-                        try
-                        {
-                            character = input.ReadByte();
-                            CompressionTracker.Instance.IncrementInput();
-                        }
-                        catch (EndOfStreamException)
-                        {
-                            _model.SetLastContext();
-                            character = Constants.DONE;
-                        }
-                    }
-                }
-                else
-                {
-                    character = Constants.FLUSH;
-                }
-
-                do
-                {
-                    escaped = _model.ConvertIntToSymbol(character, symbol);
-                    _coder.Encode(symbol);
-                } while (escaped);
-
-                if (character == Constants.FLUSH)
-                {
-                    _model.Flush();
-                    flush = false;
-                }
-                else if (character == Constants.EndOfPacket)
-                {
-                    _coder.Flush(partMax);
-                    output.Flush();
-                    output.Close();
-                    outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
-                    output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
-                    _coder = new Coder(true, input, output, _compatabilityMode);
-                }
-                else if (character == Constants.DONE)
-                {
-                    break;
-                }
-                
-                _model.Update(character);
-                _model.AddSymbol(character);
-            }
-            _coder.Flush(partMax);
-            output.Flush();
-            output.Close();
-        }
-
-        public void CompressSplitRollBack(BinaryReader input, string outputBaseName, Int32 partMax, bool pad = false)
+        public void CompressSplitRollBack(BinaryReader input, string outputBaseName, Int32 partMax, bool pad = false, Int32 emptyBitsInLastByte = 0)
         {
             Int32 character;
             Symbol symbol = new Symbol();
@@ -407,7 +302,7 @@ namespace ArithmeticCoder
             output.Close();
         }
 
-        public bool CompressSplit(Queue<Int32> input,  List<byte> output, Int32 partMax, Int32 emptyBitsInLastByte)
+        public bool CompressSplit(Queue<byte> input,  List<byte> output, Int32 partMax, bool pad = false, Int32 emptyBitsInLastByte = 0)
         {
             Int32 character;
             Symbol symbol = new Symbol();
@@ -420,7 +315,7 @@ namespace ArithmeticCoder
             bool flush = false;
             Int16 textCount = 0;
 
-            _coder = new Coder(true, null, null, _compatabilityMode);
+            _coder = new Coder(true, input, output, _compatabilityMode);
 
             while (true)
             {
@@ -510,16 +405,22 @@ namespace ArithmeticCoder
             return result;
         }
 
-        public void Compress(List<Int32> input, List<byte> output)
+        private void Compress(List<Int32> input, List<byte> output, Int32 emptyBitsInLastByte = 0)
         {
             Int32 character;
             Symbol symbol = new Symbol();
             bool escaped;
             bool flush = false;
             Int32 index = 0;
+            Int16 textCount = 0;
 
             while (index < input.Count)
             {
+                if (!_static && (++textCount & 0x0ff) == 0)
+                {
+                    flush = CheckCompression();
+                }
+
                 if (!flush)
                 {
                     character = input[index++];
@@ -549,7 +450,7 @@ namespace ArithmeticCoder
                 _model.Update(character);
                 _model.AddSymbol(character);
             }
-            _coder?.Flush(output);
+            _coder?.Flush(output, emptyBitsInLastByte);
         }
 
         /*
@@ -645,11 +546,21 @@ namespace ArithmeticCoder
             }
         }
 
-        public List<byte> CompressPacket(Queue<Int32> input, Int32 packetSize, Int32 paddingBits)
+        public List<byte> CompressPacket(Queue<byte> input, Int32 packetSize, Int32 paddingBits = 0, bool pad = false)
         {
+            Symbol symbol = new Symbol();
             List<byte> result = new List<byte>();
             bool done = false;
             CompressionEventArgs? compressionEventArgs = null;
+            Int32 character = 0;
+            Int16 textCount = 0;
+            bool flush = false;
+            bool escaped;
+            List<Int32> inputList = new List<Int32>();
+            List<byte> outputList = new List<byte>();
+            Int64 sizeOfPacket = 0;
+            Coder _coder = new Coder(true, input, result, _compatabilityMode); 
+
             System.Threading.Monitor.Enter(_inputQue);
             foreach (Int32 data in input)
             {
@@ -658,23 +569,101 @@ namespace ArithmeticCoder
 
             while(!done)
             {
-                if (_inputQue.Count == 0)
+                if((_coder.OutputLength + Constants.NearEndPacketSize) > packetSize)
                 {
-                    System.Threading.Monitor.Exit(_inputQue);
-                    // trigger compression status event
-                    compressionEventArgs = new CompressionEventArgs(false);
-                    CompressionStatus?.Invoke(this, compressionEventArgs);
-                    // wait for resume event
-                    _inputAdded.WaitOne();
-                    System.Threading.Monitor.Enter(_inputQue);
+
+                    if (!_static && (++textCount & 0x0ff) == 0)
+                    {
+                        flush = CheckCompression();
+                    }
+
+                    if (!flush)
+                    {
+                        do
+                        {
+
+                            if (input.Count > 0)
+                            {
+                                CompressionTracker.Instance.SetRollBackCheckPoint();
+                                character = input.Peek();
+                                inputList.Add(character);
+                                CompressionTracker.Instance.IncrementInput();
+                            }
+                            else
+                            {
+                                System.Threading.Monitor.Exit(_inputQue);
+                                // trigger compression status event
+                                compressionEventArgs = new CompressionEventArgs(false);
+                                CompressionStatus?.Invoke(this, compressionEventArgs);
+                                // wait for resume event
+                                _inputAdded.WaitOne();
+                                System.Threading.Monitor.Enter(_inputQue);
+                            }
+
+                            outputList.Clear();
+                            inputList.Add(Constants.EndOfPacket);
+                            _model.SetRollBackCheckPoint();
+                            _coder.SetRollBackCheckPoint();
+                            Compress(inputList, outputList);
+                            inputList.RemoveAt(inputList.Count - 1);
+                            _model.RollBack();
+                            _coder.RollBack();
+                            CompressionTracker.Instance.RollBack();
+                            sizeOfPacket = _coder.OutputLength + outputList.Count;
+                            if (sizeOfPacket <= packetSize)
+                            {
+                                input.Dequeue();
+                            }
+                        } while (sizeOfPacket <= packetSize);
+                        inputList.RemoveAt(inputList.Count - 1);
+                        inputList.Add(Constants.EndOfPacket);
+                        Compress(inputList, outputList);
+                        foreach (byte bite in outputList)
+                        {
+                            outputList.Add(bite);
+                        }
+                        done = true;
+                    }
                 }
+                else
+                {
+                    if (input.Count > 0)
+                    {
+                        character = input.Dequeue();
+                        CompressionTracker.Instance.IncrementInput();
+                    }
+                    else
+                    {
+                        System.Threading.Monitor.Exit(_inputQue);
+                        // trigger compression status event
+                        compressionEventArgs = new CompressionEventArgs(false);
+                        CompressionStatus?.Invoke(this, compressionEventArgs);
+                        // wait for resume event
+                        _inputAdded.WaitOne();
+                        System.Threading.Monitor.Enter(_inputQue);
+                    }
 
-                CompressSplit(input, result, packetSize, paddingBits);
+                    do
+                    {
+                        escaped = _model.ConvertIntToSymbol(character, symbol);
+                        _coder.Encode(symbol);
+                    } while (escaped);
 
+                    if (character == Constants.FLUSH)
+                    {
+                        _model.Flush();
+                        flush = false;
+                    }
+                    else if (character == Constants.DONE)
+                    {
+                        break;
+                    }
+                    _model.Update(character);
+                    _model.AddSymbol(character);
+                }
             }
 
             System.Threading.Monitor.Exit(_inputQue);
-
 
             return result;
         }
@@ -720,21 +709,6 @@ namespace ArithmeticCoder
                 _model.Update(character);
                 _model.AddSymbol(character);
             }
-        }
-
-        public void Write(byte[] bites)
-        {
-
-        }
-
-        public void Write(byte bite)
-        {
-
-        }
-
-        public byte ReadByte()
-        {
-            return 0x00;
         }
 
         public event EventHandler<CompressionEventArgs>? CompressionStatus;
@@ -785,7 +759,7 @@ namespace ArithmeticCoder
         private bool _compatabilityMode;
         private bool _static;
 
-        private Queue<Int32>? _inputQue;
+        private Queue<Int32> _inputQue = new Queue<Int32>();
         private AutoResetEvent _inputAdded = new AutoResetEvent(false);
     }
 }

@@ -1,12 +1,74 @@
 ﻿namespace ArithmeticCoder
 {
+    internal class WriterObject
+    {
+        public WriterObject(BinaryWriter writer)
+        {
+            _writer = writer;
+        }
+
+        public WriterObject(List<byte> output)
+        {
+            _outputList = output;
+        }
+
+        public void Write(byte bite)
+        {
+            if (_writer != null)
+            {
+                _writer.Write(bite);
+            }
+            else if(_outputList != null)
+            {
+                _outputList.Add(bite);
+            }
+        }
+
+        public void Flush()
+        {
+            if (_writer != null)
+            {
+                _writer.Flush();
+            }
+        }
+
+        public Int64 Length
+        {
+            get
+            {
+                Int64 result = 0;
+                if (_outputList != null)
+                {
+                    result = _outputList.Count;
+                }
+                else if (_writer != null)
+                {
+                    result = _writer.BaseStream.Length;
+                }
+
+                return result;
+            }
+        }
+
+        private BinaryWriter? _writer = null;
+        private List<byte>? _outputList = null;
+    }
+
     internal class BitStreamWriter
     {
-        public BitStreamWriter(BinaryWriter stream)
+        public BitStreamWriter(BinaryWriter output)
         {
             _rack = 0x00;
             _mask = 0x80;
-            _stream = stream;
+            _output = new WriterObject(output);
+            _rollBackActions = new Stack<RollBackItem>();
+        }
+
+        public BitStreamWriter(List<byte> output)
+        {
+            _rack = 0x00;
+            _mask = 0x80;
+            _output = new WriterObject(output);
             _rollBackActions = new Stack<RollBackItem>();
         }
 
@@ -22,7 +84,7 @@
 
             if (_mask == 0x00)
             {
-                _stream.Write(_rack);
+                _output.Write(_rack);
                 CompressionTracker.Instance.IncrementOutput();
                 _mask = 0x80;
                 _rack = 0x00;
@@ -77,7 +139,7 @@
                 _mask >>= 1;
                 if(_mask == 0x00)
                 {
-                    _stream.Write(_rack);
+                    _output.Write(_rack);
                     CompressionTracker.Instance.IncrementOutput();
                     _rack = 0x00;
                     _mask = 0x80;
@@ -112,10 +174,10 @@
         {
             if(_mask != 0x80)
             {
-                _stream.Write(_rack);
+                _output.Write(_rack);
                 CompressionTracker.Instance.IncrementOutput();
             }
-            _stream.Flush();
+            _output.Flush();
         }
 
         public void Flush(List<byte> output)
@@ -130,13 +192,13 @@
 
         public void Flush(byte bite)
         {
-            _stream.Write(bite);
-            _stream.Flush();
+            _output.Write(bite);
+            _output.Flush();
         }
 
         public void SetRollBackCheckPoint()
         {
-            _keepRollBack = true;
+            //_keepRollBack = true;
             _rollBackActions.Push(new RollBackBitWriter(_rack, _mask));
         }
 
@@ -157,21 +219,21 @@
                     }
                 }
             } while (_rollBackActions.Count > 0);
-            _keepRollBack = false;
+            //_keepRollBack = false;
         }
 
         public Int64 Length
         {
             get
             {
-                _stream.Flush();
-                return _stream.BaseStream.Length;
+                _output.Flush();
+                return _output.Length;
             }
         }
 
         public void WriteByte(byte bite)
         {
-            _stream.Write(bite);
+            _output.Write(bite);
             CompressionTracker.Instance.IncrementOutput();
         }
 
@@ -180,8 +242,8 @@
 
         private byte _rack;
         private byte _mask;
-        private BinaryWriter _stream;
-        private bool _keepRollBack;
+        private WriterObject _output;
+        //private bool _keepRollBack;
         private Stack<RollBackItem> _rollBackActions;
     }
 }

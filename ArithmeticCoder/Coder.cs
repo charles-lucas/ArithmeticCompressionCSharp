@@ -35,6 +35,39 @@
             }
         }
 
+        public Coder(bool encode, Queue<byte>? input, List<byte>? output, bool compatabilityMode = true)
+        {
+            _rollBackActions = new Stack<RollBackItem>();
+            _compatabilityMode = compatabilityMode;
+
+            if (input != null)
+            {
+                _input = new BitStreamReader(input, compatabilityMode);
+            }
+            else
+            {
+                _input = null;
+            }
+
+            if (output != null)
+            {
+                _output = new BitStreamWriter(output);
+            }
+            else
+            {
+                _output = null;
+            }
+
+            if (encode)
+            {
+                InitializeEncode();
+            }
+            else
+            {
+                InitializeDecode();
+            }
+        }
+
         public void Encode(Symbol symbol)
         {
             Int64 range = (_high - _low) + 1;
@@ -195,9 +228,10 @@
             _output?.Flush();
         }
 
-        public void Flush(List<byte> result)
+        public void Flush(List<byte> result, Int32 emptyBitsInLastByte)
         {
             bool output = (_low & 0x4000) != 0;
+            byte tempMask = 0x01;
             _output?.WriteBit(output, result);
             _underflowBits++;
 
@@ -207,7 +241,17 @@
                 _output?.WriteBit(output, result);
             }
             _underflowBits = 0;
-            if(_compatabilityMode)
+
+            if (emptyBitsInLastByte != 0 && _output != null)
+            {
+                tempMask <<= (7 - emptyBitsInLastByte);
+                while (_output.Mask < tempMask)
+                {
+                    _output.WriteBit(false, result);
+                }
+            }
+
+            if (_compatabilityMode)
             {
                 _output?.WriteBits(0, 16, result);
             }
@@ -271,7 +315,7 @@
 
         public void SetRollBackCheckPoint()
         {
-            _keepRollBack = true;
+            //_keepRollBack = true;
             _rollBackActions.Push(new RollBackCoder(_low, _high, _code, _underflowBits));
             _output?.SetRollBackCheckPoint();
         }
@@ -296,7 +340,7 @@
                 }
             } while (_rollBackActions.Count > 0);
             _output?.RollBack();
-            _keepRollBack = false;
+            //_keepRollBack = false;
         }
 
         public Int64 OutputLength
@@ -333,7 +377,7 @@
         private UInt64 _underflowBits;
         private BitStreamReader? _input;
         private BitStreamWriter? _output;
-        private bool _keepRollBack;
+        //private bool _keepRollBack;
         private Stack<RollBackItem> _rollBackActions;
         private bool _compatabilityMode;
     }

@@ -4,39 +4,42 @@ namespace ArithmeticCoder
 {
     public class Context
     {
-        public Context(bool CompatabilityMode = false)
+        public Context(bool compatabilityMode = false)
         {
             _stats = new List<Stat>();
             _order = Order.Model;
             _rollBackActions = new Stack<RollBackItem>();
             _contextKey = null;
-            _compatabilityMode = false;
+            _compatabilityMode = compatabilityMode;
         }
 
-        public Context(Order order, bool CompatabilityMode = false)
+        public Context(Order order, bool compatabilityMode = false)
         {
             _stats = new List<Stat>();
             _order = order;
             _rollBackActions = new Stack<RollBackItem>();
             _contextKey = null;
+            _compatabilityMode = compatabilityMode;
         }
 
-        public Context(Stat stat, bool CompatabilityMode = false)
+        public Context(Stat stat, bool compatabilityMode = false)
         {
             _stats = new List<Stat>();
             _order = Order.Model;
             _stats.Add(stat);
             _rollBackActions = new Stack<RollBackItem>();
             _contextKey = null;
+            _compatabilityMode = compatabilityMode;
         }
 
-        public Context(Stat stat, Order order, bool CompatabilityMode = false)
+        public Context(Stat stat, Order order, bool compatabilityMode = false)
         {
             _stats = new List<Stat>();
             _stats.Add(stat);
             _order = order;
             _rollBackActions = new Stack<RollBackItem>();
             _contextKey = null;
+            _compatabilityMode = compatabilityMode;
         }
 
         //* This routine is called to update the count for a particular symbol
@@ -310,7 +313,7 @@ namespace ArithmeticCoder
             }
             if(!_compatabilityMode)
             {
-                for (int i = _stats.Count - 1; _stats[i].Count == 0 && i >= 0; i--)
+                for (int i = _stats.Count - 1; i >= 0 && _stats[i].Count == 0; i--)
                 {
                     _stats.RemoveAt(i);
                 }

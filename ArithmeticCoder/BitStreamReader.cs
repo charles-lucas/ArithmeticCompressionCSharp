@@ -1,12 +1,61 @@
-﻿namespace ArithmeticCoder
+﻿using System.IO;
+
+namespace ArithmeticCoder
 {
+    internal class ReaderObject
+    {
+        public ReaderObject(BinaryReader reader )
+        {
+            _breader = reader;
+        }
+
+        public ReaderObject(Queue<byte> input)
+        {
+            _inputQue = input;
+        }
+
+        public byte ReadByte()
+        {
+            byte result = 0x00;
+
+            if (_inputQue != null)
+            {
+                try
+                {
+                    result = _inputQue.Dequeue();
+                }
+                catch (InvalidOperationException)
+                {
+                    throw new System.IO.EndOfStreamException(); 
+                }
+            }
+            else if(_breader != null)
+            {
+                result = _breader.ReadByte();
+            }
+
+            return result;
+        }
+
+        private BinaryReader? _breader = null;
+        private Queue<byte>? _inputQue = null;
+    }
     internal class BitStreamReader
     {
         public BitStreamReader(BinaryReader stream, bool compatabilityMode = true)
         {
             _rack = 0x00;
             _mask = 0x80;
-            _stream = stream;
+            _input = new ReaderObject(stream);
+            _addedZeros = 0;
+            _compatabilityMode = compatabilityMode;
+        }
+
+        public BitStreamReader(Queue<byte> input, bool compatabilityMode = true)
+        {
+            _rack = 0x00;
+            _mask = 0x80;
+            _input = new ReaderObject(input);
             _addedZeros = 0;
             _compatabilityMode = compatabilityMode;
         }
@@ -20,7 +69,7 @@
             {
                 try
                 {
-                    value = _stream.ReadByte();
+                    value = _input.ReadByte();
                     CompressionTracker.Instance.IncrementInput();
                     _rack = (byte)value;
                 }
@@ -54,7 +103,7 @@
 
         private byte _rack;
         private byte _mask;
-        private BinaryReader _stream;
+        private ReaderObject _input;
         private bool _compatabilityMode;
         private Int32 _addedZeros;
     }
