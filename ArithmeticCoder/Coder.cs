@@ -35,19 +35,12 @@
             }
         }
 
-        public Coder(bool encode, Queue<byte>? input, List<byte>? output, bool compatabilityMode = true)
+        public Coder(List<byte>? output, bool compatabilityMode = true)
         {
             _rollBackActions = new Stack<RollBackItem>();
             _compatabilityMode = compatabilityMode;
 
-            if (input != null)
-            {
-                _input = new BitStreamReader(input, compatabilityMode);
-            }
-            else
-            {
-                _input = null;
-            }
+            _input = null;
 
             if (output != null)
             {
@@ -58,14 +51,7 @@
                 _output = null;
             }
 
-            if (encode)
-            {
-                InitializeEncode();
-            }
-            else
-            {
-                InitializeDecode();
-            }
+            InitializeEncode();
         }
 
         public void Encode(Symbol symbol)
@@ -256,6 +242,42 @@
                 _output?.WriteBits(0, 16, result);
             }
             _output?.Flush(result);
+        }
+
+        public void Flush(Int32 emptyBitsInLastByte, bool padToSize = false,  Int32 size = 0)
+        {
+            bool output = (_low & 0x4000) != 0;
+            byte tempMask = 0x01;
+            _output?.WriteBit(output);
+            _underflowBits++;
+
+            while (_underflowBits-- > 0)
+            {
+                output = (~_low & 0x4000) != 0;
+                _output?.WriteBit(output);
+            }
+            _underflowBits = 0;
+
+            if (emptyBitsInLastByte != 0 && _output != null)
+            {
+                tempMask <<= (7 - emptyBitsInLastByte);
+                while (_output.Mask < tempMask)
+                {
+                    _output.WriteBit(false);
+                }
+            }
+
+            if (_compatabilityMode)
+            {
+                _output?.WriteBits(0, 16);
+            }
+
+            while (padToSize && _output != null && _output.Length < size)
+            {
+                _output?.WriteByte(0x00);
+            }
+
+            _output?.Flush();
         }
 
         public void Flush(Int32 padToSize, bool pad = false)

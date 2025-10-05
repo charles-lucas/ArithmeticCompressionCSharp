@@ -62,7 +62,7 @@ namespace ArithmeticCoder
             RollBackItem? item = null;
             _keepRollBack = false;
 
-            do
+            while(_rollBackStack.Count > 0)
             {
                 item = _rollBackStack.Pop();
                 if (item != null)
@@ -74,7 +74,7 @@ namespace ArithmeticCoder
                         _outputBytes = tracker.OutputBytes;
                     }
                 }
-            } while (_rollBackStack.Count > 0);
+            }
         }
 
         public UInt64 InputBytes => _inputBytes;

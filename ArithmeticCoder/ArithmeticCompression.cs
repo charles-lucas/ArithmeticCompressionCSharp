@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Collections;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace ArithmeticCoder
@@ -13,6 +14,30 @@ namespace ArithmeticCoder
         public bool Complete => _complete;
 
         private readonly bool _complete;
+    }
+
+    public class CompressArgs
+    {
+        public CompressArgs(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
+        {
+            _input = input;
+            _output = output;
+            _packetSize = packetSize;
+            _emptyBitsInLastByte = emptyBitsInLastByte;
+            _padToSize = padToSize;
+        }
+
+        public Queue<Int32> Input => _input;
+        public List<byte> Output => _output;
+        public Int32 PacketSize => _packetSize;
+        public Int32 EmptyBitsInLastByte => _emptyBitsInLastByte;
+        public bool PadToSize => _padToSize;
+
+        private Queue<Int32> _input;
+        private List<byte> _output;
+        private Int32 _packetSize;
+        private Int32 _emptyBitsInLastByte;
+        private bool _padToSize;
     }
 
     public class ArithmeticCompression
@@ -302,7 +327,7 @@ namespace ArithmeticCoder
             output.Close();
         }
 
-        public bool CompressSplit(Queue<byte> input,  List<byte> output, Int32 partMax, bool pad = false, Int32 emptyBitsInLastByte = 0)
+        public bool CompressSplit(Queue<Int32> input,  List<byte> output, Int32 partMax, bool pad = false, Int32 emptyBitsInLastByte = 0)
         {
             Int32 character;
             Symbol symbol = new Symbol();
@@ -315,7 +340,7 @@ namespace ArithmeticCoder
             bool flush = false;
             Int16 textCount = 0;
 
-            _coder = new Coder(true, input, output, _compatabilityMode);
+            _coder = new Coder(output, _compatabilityMode);
 
             while (true)
             {
@@ -546,10 +571,63 @@ namespace ArithmeticCoder
             }
         }
 
-        public List<byte> CompressPacket(Queue<byte> input, Int32 packetSize, Int32 paddingBits = 0, bool pad = false)
+        public async Task<bool> CompressPacketAsync(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
+        {
+            bool result = false;
+            var tcs = new TaskCompletionSource<bool>();
+            Task completedTask;
+            Thread? compressThread = null;
+            CompressArgs? compressionArgs = null;
+
+            EventHandler<CompressionEventArgs>? handler = null;
+            handler = (sender, args) =>
+            {
+                CompressionStatus -= handler;
+                _packetCompleted = args.Complete;
+                tcs.TrySetResult(true);
+            };
+
+
+            if(_packetInProgress)
+            {
+                _packetCompleted = false;
+                CompressionStatus += handler;
+                AddInput(input);
+                //wait for result
+                completedTask = await Task.WhenAny(tcs.Task);
+                result = _packetCompleted;
+                _packetInProgress = !result;
+            }
+            else
+            {
+                _packetCompleted = false;
+                CompressionStatus += handler;
+                //XXX FIXME Run in seperate thread
+                compressionArgs = new CompressArgs(input, output, packetSize, emptyBitsInLastByte, padToSize);
+                compressThread = new Thread(this.CompressPacketThread);
+                compressThread.Start(compressionArgs);
+                //CompressPacket(input, output, packetSize, emptyBitsInLastByte, padToSize);
+                //wait for result
+                completedTask = await Task.WhenAny(tcs.Task);
+                result = _packetCompleted;
+                _packetInProgress = !result;
+            }
+
+            return result;
+        }
+
+        public void CompressPacketThread(object? args)
+        {
+            if(args != null)
+            {
+                CompressArgs compArgs = (CompressArgs)args;
+                CompressPacket(compArgs.Input, compArgs.Output, compArgs.PacketSize, compArgs.EmptyBitsInLastByte, compArgs.PadToSize);
+            }
+        }
+
+        public void CompressPacket(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
         {
             Symbol symbol = new Symbol();
-            List<byte> result = new List<byte>();
             bool done = false;
             CompressionEventArgs? compressionEventArgs = null;
             Int32 character = 0;
@@ -559,7 +637,7 @@ namespace ArithmeticCoder
             List<Int32> inputList = new List<Int32>();
             List<byte> outputList = new List<byte>();
             Int64 sizeOfPacket = 0;
-            Coder _coder = new Coder(true, input, result, _compatabilityMode); 
+            _coder = new Coder(output, _compatabilityMode); 
 
             System.Threading.Monitor.Enter(_inputQue);
             foreach (Int32 data in input)
@@ -582,10 +660,10 @@ namespace ArithmeticCoder
                         do
                         {
 
-                            if (input.Count > 0)
+                            if (_inputQue.Count > 0)
                             {
                                 CompressionTracker.Instance.SetRollBackCheckPoint();
-                                character = input.Peek();
+                                character = _inputQue.Peek();
                                 inputList.Add(character);
                                 CompressionTracker.Instance.IncrementInput();
                             }
@@ -598,13 +676,32 @@ namespace ArithmeticCoder
                                 // wait for resume event
                                 _inputAdded.WaitOne();
                                 System.Threading.Monitor.Enter(_inputQue);
+                                if(_inputQue.Count != 0)
+                                {
+                                    character = _inputQue.Peek();
+                                    inputList.Add(character);
+                                    CompressionTracker.Instance.IncrementInput();
+                                }
+                                else
+                                {
+                                    character = Constants.DONE;
+                                    inputList.Add(character);
+                                    done = true;
+                                }
                             }
 
                             outputList.Clear();
-                            inputList.Add(Constants.EndOfPacket);
+                            if(!done)
+                            {
+                                inputList.Add(Constants.EndOfPacket);
+                            }
+                            else
+                            {
+                                inputList.Add(Constants.DONE);
+                            }
                             _model.SetRollBackCheckPoint();
                             _coder.SetRollBackCheckPoint();
-                            Compress(inputList, outputList);
+                            Compress(inputList, outputList, emptyBitsInLastByte);
                             inputList.RemoveAt(inputList.Count - 1);
                             _model.RollBack();
                             _coder.RollBack();
@@ -612,24 +709,33 @@ namespace ArithmeticCoder
                             sizeOfPacket = _coder.OutputLength + outputList.Count;
                             if (sizeOfPacket <= packetSize)
                             {
-                                input.Dequeue();
+                                _inputQue.Dequeue();
                             }
-                        } while (sizeOfPacket <= packetSize);
+                        } while (sizeOfPacket <= packetSize && !done);
                         inputList.RemoveAt(inputList.Count - 1);
-                        inputList.Add(Constants.EndOfPacket);
+                        if (!done)
+                        {
+                            inputList.Add(Constants.EndOfPacket);
+                        }
+                        else
+                        {
+                            inputList.Add(Constants.DONE);
+                        }
+                        outputList.Clear();
                         Compress(inputList, outputList);
                         foreach (byte bite in outputList)
                         {
-                            outputList.Add(bite);
+                            output.Add(bite);
                         }
                         done = true;
+                        _packetCompleted = true;
                     }
                 }
                 else
                 {
-                    if (input.Count > 0)
+                    if (_inputQue.Count > 0)
                     {
-                        character = input.Dequeue();
+                        character = _inputQue.Dequeue();
                         CompressionTracker.Instance.IncrementInput();
                     }
                     else
@@ -641,6 +747,15 @@ namespace ArithmeticCoder
                         // wait for resume event
                         _inputAdded.WaitOne();
                         System.Threading.Monitor.Enter(_inputQue);
+                        if (_inputQue.Count != 0)
+                        {
+                            character = _inputQue.Dequeue();
+                            CompressionTracker.Instance.IncrementInput();
+                        }
+                        else
+                        {
+                            character = Constants.DONE;
+                        }
                     }
 
                     do
@@ -662,13 +777,14 @@ namespace ArithmeticCoder
                     _model.AddSymbol(character);
                 }
             }
-
             System.Threading.Monitor.Exit(_inputQue);
-
-            return result;
+            _coder.Flush(emptyBitsInLastByte, padToSize, packetSize);
+            _packetCompleted = true;
+            compressionEventArgs = new CompressionEventArgs(true);
+            CompressionStatus?.Invoke(this, compressionEventArgs);
         }
 
-        public void AddInput(List<Int32> additionalInput)
+        public void AddInput(Queue<Int32> additionalInput)
         {
             System.Threading.Monitor.Enter(_inputQue);
             foreach (Int32 input in additionalInput)
@@ -758,6 +874,8 @@ namespace ArithmeticCoder
         private Coder? _coder;
         private bool _compatabilityMode;
         private bool _static;
+        private bool _packetInProgress = false;
+        private bool _packetCompleted = true;
 
         private Queue<Int32> _inputQue = new Queue<Int32>();
         private AutoResetEvent _inputAdded = new AutoResetEvent(false);

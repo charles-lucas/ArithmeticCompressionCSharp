@@ -1,6 +1,6 @@
 ﻿namespace ArithmeticCoder
 {
-    internal static class Constants
+    public static class Constants
     {
         public const UInt32 MAXIMUM_SCALE = 16383;
         public const Int16 ESCAPE = 256;
