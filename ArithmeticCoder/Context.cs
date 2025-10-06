@@ -135,10 +135,10 @@ namespace ArithmeticCoder
         //* and it adds all new symbols found here to the scoreboard.  This
         //* allows us to exclude counts of symbols that have already appeared in
         //*  higher order contexts, improving compression quite a bit.
-        public UInt16[] Totalize(byte[] scoreboard)
+        public UInt32[] Totalize(byte[] scoreboard)
         {
-            UInt16[] result = new UInt16[258];
-            UInt16 max = 0;
+            UInt32[] result = new UInt32[258];
+            UInt32 max = 0;
             int i = 0;
 
             while (true)
@@ -171,8 +171,8 @@ namespace ArithmeticCoder
                 }
                 else
                 {
-                    result[0] = (UInt16)(256 - (_stats.Count - 1));
-                    result[0] *= (UInt16)(_stats.Count - 1);
+                    result[0] = (UInt32)(256 - (_stats.Count - 1));
+                    result[0] *= (UInt32)(_stats.Count - 1);
                     result[0] /= 256;
                     result[0] /= max;
                     result[0]++;

@@ -10,7 +10,7 @@ namespace ArithmeticCoder
             _count = 0;
         }
 
-        public Stat(byte symbol, UInt16 count)
+        public Stat(byte symbol, UInt32 count)
         {
             _symbol = symbol;
             _count = count;
@@ -23,7 +23,7 @@ namespace ArithmeticCoder
 
         public void Flush()
         {
-            _count = (UInt16)(_count / 2);
+            _count = (_count / 2);
         }
 
         public override bool Equals(object? obj) => Equals(obj as Stat);
@@ -49,7 +49,7 @@ namespace ArithmeticCoder
         }
 
         [JsonInclude]
-        public UInt16 Count
+        public UInt32 Count
         {
             get
             {
@@ -62,6 +62,6 @@ namespace ArithmeticCoder
         }
 
         private byte _symbol;
-        private UInt16 _count;
+        private UInt32 _count;
     }
 }

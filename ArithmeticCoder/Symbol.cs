@@ -16,15 +16,15 @@
             Scale = 0;
         }
 
-        public Symbol(UInt16 low, UInt16 high, UInt16 scale)
+        public Symbol(UInt32 low, UInt32 high, UInt32 scale)
         {
             LowCount = low;
             HighCount = high;
             Scale = scale;
         }
 
-        public UInt16 LowCount;
-        public UInt16 HighCount;
-        public UInt16 Scale;
+        public UInt32 LowCount;
+        public UInt32 HighCount;
+        public UInt32 Scale;
     }
 }

@@ -101,7 +101,7 @@ namespace ArithmeticCoder
         {
             int index;
             Context table = GetCurrentContext();
-            UInt16[] totals;
+            UInt32[] totals;
 
             totals = table.Totalize(_scoreboard);
 
