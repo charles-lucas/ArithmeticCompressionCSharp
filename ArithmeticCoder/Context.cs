@@ -2,7 +2,7 @@
 
 namespace ArithmeticCoder
 {
-    public class Context
+    internal class Context
     {
         public Context(bool compatabilityMode = false)
         {

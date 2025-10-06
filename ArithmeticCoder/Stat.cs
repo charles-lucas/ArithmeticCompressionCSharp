@@ -2,7 +2,7 @@
 
 namespace ArithmeticCoder
 {
-    public class Stat : IEquatable<Stat>
+    internal class Stat : IEquatable<Stat>
     {
         public Stat()
         {

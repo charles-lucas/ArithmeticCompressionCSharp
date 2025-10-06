@@ -1,6 +1,6 @@
 ﻿namespace ArithmeticCoder
 {
-    public class ModelOrderN_Static : ModelOrderN
+    internal class ModelOrderN_Static : ModelOrderN
     {
         //Ctor for JSON 
         public ModelOrderN_Static() : base()

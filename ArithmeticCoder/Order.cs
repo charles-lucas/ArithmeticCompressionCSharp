@@ -1,6 +1,6 @@
 ﻿namespace ArithmeticCoder
 {
-    public enum Order
+    internal enum Order
     {
         Control = -2,
         AllSymbols = -1,

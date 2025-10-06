@@ -7,7 +7,7 @@
     * as our end points, we have an integer scale.  The low_count and
     * high_count define where the symbol falls in the range.
     */
-    public class Symbol
+    internal class Symbol
     {
         public Symbol()
         {

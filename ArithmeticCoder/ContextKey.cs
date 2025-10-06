@@ -2,7 +2,7 @@
 
 namespace ArithmeticCoder
 {
-    public class ContextKey : IEquatable<ContextKey>
+    internal class ContextKey : IEquatable<ContextKey>
     {
         public ContextKey()
         {

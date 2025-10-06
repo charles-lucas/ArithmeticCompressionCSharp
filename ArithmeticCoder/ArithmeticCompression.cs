@@ -115,11 +115,6 @@ namespace ArithmeticCoder
             _static = false;
         }
 
-        public ArithmeticCompression(ModelOrderN model)
-        {
-            _model = model;
-        }
-
         /*
         * The main procedure is similar to the main found in ARITH1E.C.  It has
         * to initialize the coder and the model.  It then sits in a loop
@@ -522,6 +517,7 @@ namespace ArithmeticCoder
                 }
                 _model.Update(character);
                 _model.AddSymbol(character);
+                _model.SetLastContext();
             }
         }
 
@@ -616,7 +612,7 @@ namespace ArithmeticCoder
             return result;
         }
 
-        public void CompressPacketThread(object? args)
+        private void CompressPacketThread(object? args)
         {
             if(args != null)
             {
@@ -625,7 +621,7 @@ namespace ArithmeticCoder
             }
         }
 
-        public void CompressPacket(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
+        private void CompressPacket(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
         {
             Symbol symbol = new Symbol();
             bool done = false;
@@ -784,7 +780,7 @@ namespace ArithmeticCoder
             CompressionStatus?.Invoke(this, compressionEventArgs);
         }
 
-        public void AddInput(Queue<Int32> additionalInput)
+        private void AddInput(Queue<Int32> additionalInput)
         {
             System.Threading.Monitor.Enter(_inputQue);
             foreach (Int32 input in additionalInput)
@@ -795,44 +791,7 @@ namespace ArithmeticCoder
             _inputAdded.Set();
         }
 
-        public void LoadModel(System.IO.BinaryReader reader)
-        {
-            Symbol symbol = new Symbol();
-            Coder coder = new Coder(false, reader, null, _compatabilityMode);
-            Int32 character;
-            Int32 count;
-
-            while(true)
-            {
-                do
-                {
-                    _model.GetSymbolScale(symbol);
-                    count = coder.GetCurrentCount(symbol);
-                    character = _model.ConvertSymbolToInt(symbol);
-                    coder.RemoveSymbol(symbol);
-                }while(character == Constants.ESCAPE);
-
-                if(character == Constants.DONE)
-                {
-                    break;
-                }
-
-                if(character == Constants.FLUSH)
-                {
-                    _model.Flush();
-                }
-                
-                _model.Update(character);
-                _model.AddSymbol(character);
-            }
-        }
-
-        public event EventHandler<CompressionEventArgs>? CompressionStatus;
-
-        protected void OnCompressionStatus(CompressionEventArgs ea)
-        {
-            CompressionStatus?.Invoke(this, ea);
-        }
+        private event EventHandler<CompressionEventArgs>? CompressionStatus;
 
         /*
         * This routine is called once every 256 input symbols.  Its job is to
@@ -867,8 +826,6 @@ namespace ArithmeticCoder
         public UInt128 DictionaryStats(StreamWriter stream) => _model.DictionaryStats(stream);
 
         public UInt32 MaxOrder => _model.MaxOrder;
-
-        public string Context => _model.LastContext.ToString();
 
         private ModelOrderN _model;
         private Coder? _coder;

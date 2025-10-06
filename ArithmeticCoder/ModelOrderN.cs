@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ArithmeticCoder
 {
-    public class ModelOrderN
+    internal class ModelOrderN
     {
         //Ctor for JSON 
         public ModelOrderN()
