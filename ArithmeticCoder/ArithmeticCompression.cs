@@ -1,10 +1,8 @@
-﻿using System.Collections;
-using System.Net.Http.Headers;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace ArithmeticCoder
 {
-    public class CompressionEventArgs : EventArgs
+    internal class CompressionEventArgs : EventArgs
     {
         public CompressionEventArgs(bool complete)
         {
@@ -16,7 +14,7 @@ namespace ArithmeticCoder
         private readonly bool _complete;
     }
 
-    public class CompressArgs
+    internal class CompressArgs
     {
         public CompressArgs(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
         {
@@ -136,6 +134,16 @@ namespace ArithmeticCoder
         * However, the FLUSH and DONE symbols drop back to the order -2 model.
         *
         */
+        public void Compress(string inputFileName, string outputFileName)
+        {
+            BinaryReader input = new BinaryReader(File.OpenRead(inputFileName));
+            BinaryWriter output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
+            Compress(input, output);
+            input.Close();
+            output.Flush();
+            output.Close();
+        }
+
         public void Compress(BinaryReader input, BinaryWriter output)
         {
             Int32 character;
@@ -192,237 +200,56 @@ namespace ArithmeticCoder
             _coder.Flush();
         }
 
-        public void CompressSplitRollBack(BinaryReader input, string outputBaseName, Int32 partMax, bool pad = false, Int32 emptyBitsInLastByte = 0)
+        public async Task<bool> CompressSplit(BinaryReader input, string outputBaseName, Int32 partMax, bool pad = false, Int32 emptyBitsInLastByte = 0)
         {
-            Int32 character;
-            Symbol symbol = new Symbol();
-            bool escaped;
-            bool flush = false;
-            Int16 textCount = 0;
-            Int32 parts = 0;
-            string outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
-            BinaryWriter output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
-            List<Int32> inputList = new List<Int32>();
-            List<byte> outputList = new List<byte>();
-            Queue<Int32> leftOverInput = new Queue<Int32>();
-            bool finalData = false;
-            Int32 index = 0;
-            Int64 sizeOfPacket = 0;
+            bool done = false;
+            Int32 emptyBitsInLastByte = 0;
+            Int32 partNumber = 0;
+            bool test;
+            bool outOfData;
+            List<byte> outputList;
+            Queue<Int32> inputQueue = new Queue<Int32>();
+            Int32 bytesToRead = partMax * 2;
+            string outputFileName;
+            BinaryWriter output;
 
-            _coder = new Coder(true, input, output, _compatabilityMode);
-
-            while (true)
+            do
             {
-                if (!_static && (++textCount & 0x0ff) == 0)
-                {
-                    flush = CheckCompression();
-                }
-
-                if (!flush)
-                {
-                    //if we are near the end of the packet start running trials to see how much we can put in
-                    if (!finalData && (_coder.OutputLength + Constants.NearEndPacketSize) > partMax)
-                    {
-                        do
-                        {
-                            try
-                            {
-                                CompressionTracker.Instance.SetRollBackCheckPoint();
-                                character = input.ReadByte();
-                                inputList.Add(character);
-                                CompressionTracker.Instance.IncrementInput();
-                            }
-                            catch (EndOfStreamException)
-                            {
-                                _model.SetLastContext();
-                                character = Constants.DONE;
-                                inputList.Add(character);
-                            }
-                            outputList.Clear();
-                            inputList.Add(Constants.EndOfPacket);
-                            _model.SetRollBackCheckPoint();
-                            _coder.SetRollBackCheckPoint();
-                            Compress(inputList, outputList);
-                            inputList.RemoveAt(inputList.Count - 1);
-                            _model.RollBack();
-                            _coder.RollBack();
-                            CompressionTracker.Instance.RollBack();
-                            sizeOfPacket = _coder.OutputLength + outputList.Count;
-                        } while (sizeOfPacket <= partMax);
-                        finalData = true;
-                        index = 0;
-                        leftOverInput.Enqueue(inputList[inputList.Count - 1]);
-                        inputList.RemoveAt(inputList.Count - 1);
-                        inputList.Add(Constants.EndOfPacket);
-                        character = inputList[index++];
-                    }
-                    else
-                    {
-                        if ((!finalData) && leftOverInput.Count == 0)
-                        {
-                            try
-                            {
-                                character = input.ReadByte();
-                                CompressionTracker.Instance.IncrementInput();
-                            }
-                            catch (EndOfStreamException)
-                            {
-                                _model.SetLastContext();
-                                character = Constants.DONE;
-                            }
-                        }
-                        else if((!finalData) && leftOverInput.Count > 0)
-                        {
-                            character = leftOverInput.Dequeue();
-                            CompressionTracker.Instance.IncrementInput();
-                        }
-                        else
-                        {
-                            character = inputList[index++];
-                            CompressionTracker.Instance.IncrementInput();
-                        }
-                    }
-                }
-                else
-                {
-                    character = Constants.FLUSH;
-                }
-
+                outputList = new List<byte>();
                 do
                 {
-                    escaped = _model.ConvertIntToSymbol(character, symbol);
-                    _coder.Encode(symbol);
-                } while (escaped);
-
-                if (character == Constants.FLUSH)
-                {
-                    _model.Flush();
-                    flush = false;
-                }
-                else if (character == Constants.EndOfPacket)
-                {
-                    _coder.Flush(partMax, pad);
-                    output.Flush();
-                    output.Close();
-                    outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, parts++);
-                    output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
-                    _coder = new Coder(true, input, output, _compatabilityMode);
-                    finalData = false;
-                    inputList.Clear();
-                }
-                else if (character == Constants.DONE)
-                {
-                    break;
-                }
-                _model.Update(character);
-                _model.AddSymbol(character);
-            }
-            _coder.Flush(partMax, pad);
-            output.Flush();
-            output.Close();
-        }
-
-        public bool CompressSplit(Queue<Int32> input,  List<byte> output, Int32 partMax, bool pad = false, Int32 emptyBitsInLastByte = 0)
-        {
-            Int32 character;
-            Symbol symbol = new Symbol();
-            bool escaped;
-            Queue<Int32> leftOverInput = new Queue<Int32>();
-            Int64 sizeOfPacket = 0;
-            bool result = false;
-            List<Int32> inputList = new List<Int32>();
-            List<Byte> outputList = new List<Byte>();
-            bool flush = false;
-            Int16 textCount = 0;
-
-            _coder = new Coder(output, _compatabilityMode);
-
-            while (true)
-            {
-                //if we are near the end of the packet start running trials to see how much we can put in
-                if ((_coder.OutputLength + Constants.NearEndPacketSize) > partMax)
-                {
-
-                    if (!_static && (++textCount & 0x0ff) == 0)
+                    outOfData = false;
+                    inputQueue.Clear();
+                    for (int i = 0; !outOfData && i < bytesToRead; i++)
                     {
-                        flush = CheckCompression();
-                    }
-
-                    if (!flush)
-                    {
-                        do
+                        try
                         {
-
-                            if(input.Count > 0)
-                            {
-                                CompressionTracker.Instance.SetRollBackCheckPoint();
-                                character = input.Peek();
-                                inputList.Add(character);
-                                CompressionTracker.Instance.IncrementInput();
-                            }
-                            else
-                            {
-                                return false;
-                            }
-
-                            outputList.Clear();
-                            inputList.Add(Constants.EndOfPacket);
-                            _model.SetRollBackCheckPoint();
-                            _coder.SetRollBackCheckPoint();
-                            Compress(inputList, outputList);
-                            inputList.RemoveAt(inputList.Count - 1);
-                            _model.RollBack();
-                            _coder.RollBack();
-                            CompressionTracker.Instance.RollBack();
-                            sizeOfPacket = _coder.OutputLength + outputList.Count;
-                            if (sizeOfPacket <= partMax)
-                            {
-                                input.Dequeue();
-                            }
-                        } while (sizeOfPacket <= partMax);
-                        inputList.RemoveAt(inputList.Count - 1);
-                        inputList.Add(Constants.EndOfPacket);
-                        Compress(inputList, outputList);
-                        foreach (byte bite in outputList)
-                        {
-                            output.Add(bite);
+                            inputQueue.Enqueue(input.ReadByte());
                         }
-                        result = true;
+                        catch (EndOfStreamException)
+                        {
+                            if(inputQueue.Count == 0)
+                            {
+                                done = true;
+                            }
+                            outOfData = true;
+                        }
                     }
+                    test = await compressor.CompressPacketAsync(inputQueue, outputList, partMax, emptyBitsInLastByte, padToSize);
                 }
-                else
+                while (!test);
+                //write out data
+                textOuptputFileName = String.Format("{0}-part{1}.bin", partsBaseFileName, partNumber++);
+                output = new BinaryWriter(File.Open(textOuptputFileName, FileMode.Create));
+                for (int i = 0; i < outputList.Count; i++)
                 {
-                    if(input.Count > 0)
-                    {
-                        character = input.Dequeue();
-                        CompressionTracker.Instance.IncrementInput();
-                    }
-                    else
-                    {
-                        return false;
-                    }
-
-                    do
-                    {
-                        escaped = _model.ConvertIntToSymbol(character, symbol);
-                        _coder.Encode(symbol);
-                    } while (escaped);
-
-                    if (character == Constants.FLUSH)
-                    {
-                        _model.Flush();
-                        flush = false;
-                    }
-                    else if (character == Constants.DONE)
-                    {
-                        break;
-                    }
-                    _model.Update(character);
-                    _model.AddSymbol(character);
-                }  
-            }
-
-            return result;
+                    output.Write(outputList[i]);
+                }
+                output.Flush();
+                output.Close();
+            } while (!done);
+            //outputList = compressor.CompressPacket(inputQueue, partMax);
+            input.Close();
         }
 
         private void Compress(List<Int32> input, List<byte> output, Int32 emptyBitsInLastByte = 0)
@@ -614,9 +441,10 @@ namespace ArithmeticCoder
 
         private void CompressPacketThread(object? args)
         {
-            if(args != null)
+            CompressArgs? compArgs = args as CompressArgs;
+
+            if(compArgs != null)
             {
-                CompressArgs compArgs = (CompressArgs)args;
                 CompressPacket(compArgs.Input, compArgs.Output, compArgs.PacketSize, compArgs.EmptyBitsInLastByte, compArgs.PadToSize);
             }
         }
@@ -708,13 +536,13 @@ namespace ArithmeticCoder
                             }
                         } while (sizeOfPacket <= packetSize && !done);
                         inputList.RemoveAt(inputList.Count - 1);
-                        if (!done)
+                        if (done)
                         {
-                            inputList.Add(Constants.EndOfPacket);
+                            inputList.Add(Constants.DONE);
                         }
                         else
                         {
-                            inputList.Add(Constants.DONE);
+                            inputList.Add(Constants.EndOfPacket);
                         }
                         outputList.Clear();
                         Compress(inputList, outputList);
@@ -722,10 +550,7 @@ namespace ArithmeticCoder
                         {
                             output.Add(bite);
                         }
-                        while(padToSize && outputList < packetSize)
-                        {
-                            output.Add(0x00);
-                        }
+
                         done = true;
                         _packetCompleted = true;
                     }
@@ -781,6 +606,10 @@ namespace ArithmeticCoder
             _packetCompleted = true;
             compressionEventArgs = new CompressionEventArgs(true);
             CompressionStatus?.Invoke(this, compressionEventArgs);
+            while(padToSize && outputList < packetSize)
+            {
+                output.Add(0x00);
+            }
         }
 
         private void AddInput(Queue<Int32> additionalInput)
