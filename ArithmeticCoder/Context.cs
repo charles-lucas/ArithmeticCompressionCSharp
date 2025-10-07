@@ -279,6 +279,10 @@ namespace ArithmeticCoder
         {
             if(update != null)
             {
+                if(update.Stats != null)
+                {
+                    _stats = update.Stats;
+                }
                 if(update.NewPosition != update.OldPosition)
                 {
                     SwapStats(update.OldPosition, update.NewPosition);
@@ -317,8 +321,22 @@ namespace ArithmeticCoder
         //* If any counts drop to 0, the counters can be removed from the
         //* stats table, but only if this is a leaf context.  Otherwise, we
         //* might cut a link to a higher order table.
-        public void Rescale()
+        public void Rescale(bool savedAlready = false)
         {
+            RollBackItem? rollBackItem = null;
+            List<Stat>? stats = null;
+
+            if(!savedAlready && _keepRollBack)
+            {
+                stats = new List<Stat>();
+                foreach(Stat item in _stats)
+                {
+                    stats.Add(new Stat(item.Symbol, item.Count));
+                }
+                rollBackItem = new RollBackUpdate(false, 0, 0, false, stats);
+                _rollBackActions.Push(rollBackItem);
+            }
+
             foreach (Stat stat in _stats)
             {
                 stat.Flush();

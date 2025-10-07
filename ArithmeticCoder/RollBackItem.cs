@@ -7,12 +7,13 @@
 
     internal class RollBackUpdate : RollBackItem
     {
-        public RollBackUpdate(bool increment, Int32 newPosition, Int32 oldPosition, bool created)
+        public RollBackUpdate(bool increment, Int32 newPosition, Int32 oldPosition, bool created, List<Stat>? stats)
         {
             _increment = increment;
             _newPosition = newPosition;
             _oldPosition = oldPosition;
             _created = created;
+            _stats = stats;
         }
 
         public bool Increment => _increment;
@@ -23,10 +24,13 @@
 
         public bool Created => _created;
 
+        public List<Stat>? Stats => _stats;
+
         private bool _increment;
         private Int32 _newPosition;
         private Int32 _oldPosition;
         private bool _created;
+        private List<Stat> _stats;
     }
 
     internal class RollBackAddSymbol : RollBackItem

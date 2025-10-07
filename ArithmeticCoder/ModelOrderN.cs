@@ -269,9 +269,17 @@ namespace ArithmeticCoder
                 if(_contexts.ContainsKey(key))
                 {
                     Flush(key);
+                    if(_keepRollBack)
+                    {
+                        _rollBackContexts.Push(_contexts[key]);
+                    }
                 }
             }
             _contexts[contextKey].Rescale();
+            if(_keepRollBack)
+            {
+                _rollBackContexts.Push(_contexts[contextKey]);
+            }
         }
 
         //* This routine is called to increment the counts for the current

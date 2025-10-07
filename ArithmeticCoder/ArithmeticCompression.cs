@@ -643,14 +643,14 @@ namespace ArithmeticCoder
 
             while(!done)
             {
+
+                if (!_static && (++textCount & 0x0ff) == 0)
+                {
+                    flush = CheckCompression();
+                }
+
                 if((_coder.OutputLength + Constants.NearEndPacketSize) > packetSize)
                 {
-
-                    if (!_static && (++textCount & 0x0ff) == 0)
-                    {
-                        flush = CheckCompression();
-                    }
-
                     if (!flush)
                     {
                         do
