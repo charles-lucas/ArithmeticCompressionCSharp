@@ -655,10 +655,9 @@ namespace ArithmeticCoder
                     {
                         do
                         {
-
+                            CompressionTracker.Instance.SetRollBackCheckPoint();
                             if (_inputQue.Count > 0)
                             {
-                                CompressionTracker.Instance.SetRollBackCheckPoint();
                                 character = _inputQue.Peek();
                                 inputList.Add(character);
                                 CompressionTracker.Instance.IncrementInput();
@@ -723,6 +722,10 @@ namespace ArithmeticCoder
                         {
                             output.Add(bite);
                         }
+                        while(padToSize && outputList < packetSize)
+                        {
+                            output.Add(0x00);
+                        }
                         done = true;
                         _packetCompleted = true;
                     }
@@ -767,6 +770,7 @@ namespace ArithmeticCoder
                     }
                     else if (character == Constants.DONE)
                     {
+                        _coder.Flush(emptyBitsInLastByte, padToSize, packetSize);
                         break;
                     }
                     _model.Update(character);
@@ -774,7 +778,6 @@ namespace ArithmeticCoder
                 }
             }
             System.Threading.Monitor.Exit(_inputQue);
-            _coder.Flush(emptyBitsInLastByte, padToSize, packetSize);
             _packetCompleted = true;
             compressionEventArgs = new CompressionEventArgs(true);
             CompressionStatus?.Invoke(this, compressionEventArgs);

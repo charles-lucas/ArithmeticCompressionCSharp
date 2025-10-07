@@ -292,7 +292,7 @@ namespace ArithmeticCoder
                 {
                     if (_keepRollBack)
                     {
-                        _contexts[key].SetRollBackCheckPoint(key);
+                        _contexts[key].SetRollBackCheckPoint();
                         _rollBackContexts.Push(_contexts[key]);
                     }
                     _contexts[key].Update((byte)character);
@@ -302,7 +302,7 @@ namespace ArithmeticCoder
                 {
                     if (_keepRollBack)
                     {
-                        _contexts[_contextKey].SetRollBackCheckPoint(_contextKey);
+                        _contexts[_contextKey].SetRollBackCheckPoint();
                         _rollBackContexts.Push(_contexts[_contextKey]);
                     }
                     _contexts[_contextKey].Update((byte)character);

@@ -4,6 +4,16 @@ namespace ArithmeticCoder
 {
     internal class Context
     {
+        //For JSON deserialization
+        public Context()
+        {
+            _stats = new List<Stat>();
+            _order = Order.Model;
+            _rollBackActions = new Stack<RollBackItem>();
+            _contextKey = null;
+            _compatabilityMode = false;
+        }
+
         public Context(bool compatabilityMode = false)
         {
             _stats = new List<Stat>();
@@ -207,21 +217,19 @@ namespace ArithmeticCoder
                 }
             }
 
-
             return result;
         }
 
-        public void SetRollBackCheckPoint(ContextKey key)
+        public void SetRollBackCheckPoint()
         {
             _keepRollBack = true;
-            _contextKey = key;
         }
 
         public void RollBack()
         {
             RollBackItem? item = null;
 
-            while(_rollBackActions.Count > 0)
+            if(_rollBackActions.Count > 0)
             {
                 item = _rollBackActions.Pop();
                 if (item != null)
@@ -233,7 +241,11 @@ namespace ArithmeticCoder
                     }
                 }
             }
-            _keepRollBack = false;
+
+            if(_rollBackActions.Count == 0)
+            {
+                _keepRollBack = false;
+            }
         }
 
         [JsonInclude]
