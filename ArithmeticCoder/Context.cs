@@ -72,6 +72,7 @@ namespace ArithmeticCoder
             Int32 newPosition = 0;
             Int32 oldPosition = 0;
             bool created = false;
+            List<Stat>? stats = null;
 
             //is the stat in the stats list
             if (index >= 0)
@@ -101,11 +102,19 @@ namespace ArithmeticCoder
             }
             if (_stats[i].Count == 0xff)
             {
+                if (_keepRollBack)
+                {
+                    stats = new List<Stat>();
+                    foreach (Stat item in _stats)
+                    {
+                        stats.Add(new Stat(item.Symbol, item.Count));
+                    }
+                }
                 Rescale();
             }
             if (_keepRollBack)
             {
-                _rollBackActions.Push(new RollBackUpdate(increment, newPosition, oldPosition, created));
+                _rollBackActions.Push(new RollBackUpdate(increment, newPosition, oldPosition, created, stats));
             }
         }
 

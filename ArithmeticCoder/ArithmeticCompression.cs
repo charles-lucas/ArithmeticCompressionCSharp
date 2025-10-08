@@ -200,10 +200,9 @@ namespace ArithmeticCoder
             _coder.Flush();
         }
 
-        public async Task<bool> CompressSplit(BinaryReader input, string outputBaseName, Int32 partMax, bool pad = false, Int32 emptyBitsInLastByte = 0)
+        public async Task<bool> CompressSplit(BinaryReader input, string outputBaseName, Int32 partMax, bool padToSize = false, Int32 emptyBitsInLastByte = 0)
         {
             bool done = false;
-            Int32 emptyBitsInLastByte = 0;
             Int32 partNumber = 0;
             bool test;
             bool outOfData;
@@ -235,12 +234,12 @@ namespace ArithmeticCoder
                             outOfData = true;
                         }
                     }
-                    test = await compressor.CompressPacketAsync(inputQueue, outputList, partMax, emptyBitsInLastByte, padToSize);
+                    test = await CompressPacketAsync(inputQueue, outputList, partMax, emptyBitsInLastByte, padToSize);
                 }
                 while (!test);
                 //write out data
-                textOuptputFileName = String.Format("{0}-part{1}.bin", partsBaseFileName, partNumber++);
-                output = new BinaryWriter(File.Open(textOuptputFileName, FileMode.Create));
+                outputFileName = String.Format("{0}-part{1}.bin", outputBaseName, partNumber++);
+                output = new BinaryWriter(File.Open(outputFileName, FileMode.Create));
                 for (int i = 0; i < outputList.Count; i++)
                 {
                     output.Write(outputList[i]);
@@ -250,6 +249,8 @@ namespace ArithmeticCoder
             } while (!done);
             //outputList = compressor.CompressPacket(inputQueue, partMax);
             input.Close();
+
+            return true;
         }
 
         private void Compress(List<Int32> input, List<byte> output, Int32 emptyBitsInLastByte = 0)
@@ -606,7 +607,7 @@ namespace ArithmeticCoder
             _packetCompleted = true;
             compressionEventArgs = new CompressionEventArgs(true);
             CompressionStatus?.Invoke(this, compressionEventArgs);
-            while(padToSize && outputList < packetSize)
+            while(padToSize && outputList.Count < packetSize)
             {
                 output.Add(0x00);
             }

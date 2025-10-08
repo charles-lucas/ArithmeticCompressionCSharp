@@ -15,7 +15,7 @@ namespace ArithmeticCoder
             _allSymbolContext = new Context(Order.AllSymbols, _compatabilityMode);
             _controlContext = new Context(Order.Control, _compatabilityMode);
             _scoreboard = new byte[256];
-            _totals = new UInt16[16];
+            _totals = new UInt32[16];
             _order = Order.Model;
             _contextKey = new ContextKey(_maxOrder);
             _lastContext = _contextKey;
@@ -45,7 +45,7 @@ namespace ArithmeticCoder
             _allSymbolContext = new Context(Order.AllSymbols, _compatabilityMode);
             _controlContext = new Context(Order.Control, _compatabilityMode);
             _scoreboard = new byte[256];
-            _totals = new UInt16[16];
+            _totals = new UInt32[16];
             _order = Order.Model;
             _contextKey = new ContextKey(maxOrder);
             _lastContext = _contextKey;
@@ -654,7 +654,7 @@ namespace ArithmeticCoder
         protected Context _allSymbolContext;
         protected Context _controlContext;
         protected byte[] _scoreboard;
-        protected UInt16[] _totals;
+        protected UInt32[] _totals;
         protected Order _order;
         protected ContextKey _contextKey;
         protected UInt32 _maxOrder;
