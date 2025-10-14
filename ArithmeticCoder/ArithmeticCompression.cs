@@ -2,20 +2,42 @@
 
 namespace ArithmeticCoder
 {
+    ///<summary>
+    /// Class <c>CompressionEventArgs</c> event arguments
+    /// for compression events.
+    ///</summary>
     internal class CompressionEventArgs : EventArgs
     {
+        ///<summary>
+        /// Constructor for <c>CompressionEventArgs</c> used to create
+        /// an instance of CompressionEventArgs.
+        ///</summary>
+        /// <param name="complete">True if the compression has completed. False, if the compression needs more data to complete compression.</param>
         public CompressionEventArgs(bool complete)
         {
             _complete = complete;
         }
 
+        ///<summary>
+        /// Method to get the completion value.
+        ///</summary>
+        /// <returns>True if the compression has completed. False, if the compression needs more data to complete compression.</returns>
         public bool Complete => _complete;
 
         private readonly bool _complete;
     }
 
+    ///<summary>
+    ///  Class <c>CompressArgs</c> to wrap arguments
+    /// for compression thread. As parameterized thread start only takes on argument.
+    ///</summary>
     internal class CompressArgs
     {
+        ///<summary>
+        /// Constructor for <c>CompressArgs</c> 
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public CompressArgs(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
         {
             _input = input;
@@ -25,10 +47,34 @@ namespace ArithmeticCoder
             _padToSize = padToSize;
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public Queue<Int32> Input => _input;
+
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public List<byte> Output => _output;
+
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public Int32 PacketSize => _packetSize;
+
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public Int32 EmptyBitsInLastByte => _emptyBitsInLastByte;
+
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public bool PadToSize => _padToSize;
 
         private Queue<Int32> _input;
@@ -38,9 +84,17 @@ namespace ArithmeticCoder
         private bool _padToSize;
     }
 
+    ///<summary>
+    ///</summary>
+    /// <param name=""></param>
+    /// <returns></returns>
     public class ArithmeticCompression
     {
         //Ctor for loading a model from JSON
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public ArithmeticCompression(Stream modelStream, bool compatabilityMode, bool staticModel = false)
         {
             StreamReader inputReader = new StreamReader(modelStream);
@@ -106,6 +160,10 @@ namespace ArithmeticCoder
             _compatabilityMode = _model.CompatabilityMode;
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public ArithmeticCompression(UInt32 maxOrder, bool compatabilityMode = false)
         {
             _model = new ModelOrderN(maxOrder, compatabilityMode);
@@ -134,6 +192,10 @@ namespace ArithmeticCoder
         * However, the FLUSH and DONE symbols drop back to the order -2 model.
         *
         */
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public void Compress(string inputFileName, string outputFileName)
         {
             BinaryReader input = new BinaryReader(File.OpenRead(inputFileName));
@@ -144,6 +206,10 @@ namespace ArithmeticCoder
             output.Close();
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public void Compress(BinaryReader input, BinaryWriter output)
         {
             Int32 character;
@@ -200,6 +266,10 @@ namespace ArithmeticCoder
             _coder.Flush();
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public async Task<bool> CompressSplit(BinaryReader input, string outputBaseName, Int32 partMax, bool padToSize = false, Int32 emptyBitsInLastByte = 0)
         {
             bool done = false;
@@ -253,6 +323,10 @@ namespace ArithmeticCoder
             return true;
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         private void Compress(List<Int32> input, List<byte> output, Int32 emptyBitsInLastByte = 0)
         {
             Int32 character;
@@ -313,6 +387,10 @@ namespace ArithmeticCoder
         * and the program exits.
         *
         */
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public void Expand(BinaryReader input, BinaryWriter output)
         {
             Symbol symbol = new Symbol();
@@ -349,6 +427,10 @@ namespace ArithmeticCoder
             }
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public void ExpandSplit(string inputBaseName, BinaryWriter output)
         {
             Symbol symbol = new Symbol();
@@ -395,6 +477,10 @@ namespace ArithmeticCoder
             }
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public async Task<bool> CompressPacketAsync(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
         {
             bool result = false;
@@ -440,6 +526,10 @@ namespace ArithmeticCoder
             return result;
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         private void CompressPacketThread(object? args)
         {
             CompressArgs? compArgs = args as CompressArgs;
@@ -450,6 +540,10 @@ namespace ArithmeticCoder
             }
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         private void CompressPacket(Queue<Int32> input, List<byte> output, Int32 packetSize, Int32 emptyBitsInLastByte = 0, bool padToSize = false)
         {
             Symbol symbol = new Symbol();
@@ -613,6 +707,10 @@ namespace ArithmeticCoder
             }
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         private void AddInput(Queue<Int32> additionalInput)
         {
             System.Threading.Monitor.Enter(_inputQue);
@@ -624,6 +722,10 @@ namespace ArithmeticCoder
             _inputAdded.Set();
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         private event EventHandler<CompressionEventArgs>? CompressionStatus;
 
         /*
@@ -634,6 +736,10 @@ namespace ArithmeticCoder
         * model to allow for more current statistics to have greater impact.
         * This heuristic approach does seem to have some effect.
         */
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         private bool CheckCompression()
         {
             bool result;
@@ -651,13 +757,25 @@ namespace ArithmeticCoder
             return result;
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public void ExportModel(Stream output)
         {
            _model.Export(output);
         }
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public UInt128 DictionaryStats(StreamWriter stream) => _model.DictionaryStats(stream);
 
+        ///<summary>
+        ///</summary>
+        /// <param name=""></param>
+        /// <returns></returns>
         public UInt32 MaxOrder => _model.MaxOrder;
 
         private ModelOrderN _model;
@@ -666,7 +784,6 @@ namespace ArithmeticCoder
         private bool _static;
         private bool _packetInProgress = false;
         private bool _packetCompleted = true;
-
         private Queue<Int32> _inputQue = new Queue<Int32>();
         private AutoResetEvent _inputAdded = new AutoResetEvent(false);
     }
