@@ -2,9 +2,15 @@
 
 namespace ArithmeticCoder
 {
+    /// <summary>
+    /// </summary>
+    /// <param name=""></param>
+    /// <returns></returns>
     internal class Context
     {
-        //For JSON deserialization
+        /// <summary>
+        /// Constructor used by JSON deserialization
+        /// </summary>
         public Context()
         {
             _stats = new List<Stat>();
@@ -14,6 +20,10 @@ namespace ArithmeticCoder
             _compatabilityMode = false;
         }
 
+        /// <summary>
+        /// Constructor used to create a <c>Context</c>.
+        /// </summary>
+        /// <param name="compatabilityMode">True, to be compatible with the reference implementation.</param>
         public Context(bool compatabilityMode = false)
         {
             _stats = new List<Stat>();
@@ -23,6 +33,10 @@ namespace ArithmeticCoder
             _compatabilityMode = compatabilityMode;
         }
 
+        /// <summary>
+        /// Constructor used to create a <c>Context</c>.
+        /// </summary>
+        /// <param name="compatabilityMode">True, to be compatible with the reference implementation.</param>>
         public Context(Order order, bool compatabilityMode = false)
         {
             _stats = new List<Stat>();
@@ -32,6 +46,11 @@ namespace ArithmeticCoder
             _compatabilityMode = compatabilityMode;
         }
 
+        /// <summary>
+        /// Constructor used to create a <c>Context</c>.
+        /// </summary>
+        /// <param name="stat"><c>Stat</c> to add to the new context.</param>
+        /// <param name="compatabilityMode">True, to be compatible with the reference implementation.</param>>>
         public Context(Stat stat, bool compatabilityMode = false)
         {
             _stats = new List<Stat>();
@@ -42,29 +61,23 @@ namespace ArithmeticCoder
             _compatabilityMode = compatabilityMode;
         }
 
-        public Context(Stat stat, Order order, bool compatabilityMode = false)
-        {
-            _stats = new List<Stat>();
-            _stats.Add(stat);
-            _order = order;
-            _rollBackActions = new Stack<RollBackItem>();
-            _contextKey = null;
-            _compatabilityMode = compatabilityMode;
-        }
-
-        //* This routine is called to update the count for a particular symbol
-        //* in a particular table.  The table is one of the current contexts,
-        //* and the symbol is the last symbol encoded or decoded.  In principle
-        //* this is a fairly simple routine, but a couple of complications make
-        //* things a little messier.  First of all, the given table may not
-        //* already have the symbol defined in its statistics table.  If it
-        //* doesn't, the stats table has to grow and have the new guy added
-        //* to it.  Secondly, the symbols are kept in sorted order by count
-        //* in the table so that the table can be trimmed during the flush
-        //* operation.  When this symbol is incremented, it might have to be moved
-        //* up to reflect its new rank.  Finally, since the counters are only
-        //* bytes, if the count reaches 255, the table absolutely must be rescaled
-        //* to get the counts back down to a reasonable level.
+        /// <summary>
+        /// This routine is called to update the count for a particular symbol
+        /// in a particular table.  The table is one of the current contexts,
+        /// and the symbol is the last symbol encoded or decoded.  In principle
+        /// this is a fairly simple routine, but a couple of complications make
+        /// things a little messier.  First of all, the given table may not
+        /// already have the symbol defined in its statistics table.  If it
+        /// doesn't, the stats table has to grow and have the new guy added
+        /// to it.  Secondly, the symbols are kept in sorted order by count
+        /// in the table so that the table can be trimmed during the flush
+        /// operation.  When this symbol is incremented, it might have to be moved
+        /// up to reflect its new rank.  Finally, since the counters are only
+        /// bytes, if the count reaches 255, the table absolutely must be rescaled
+        /// to get the counts back down to a reasonable level.
+        /// </summary>
+        /// <param name="stat"><c>Stat</c> to update in the context.</param>
+        /// <param name="increment">True, if the stat should be incremented during the update.</param>
         public void Update(Stat stat, bool increment = true)
         {
             Int32 index = _stats.IndexOf(stat);
@@ -118,42 +131,38 @@ namespace ArithmeticCoder
             }
         }
 
-        //* This routine is called to update the count for a particular symbol
-        //* in a particular table.  The table is one of the current contexts,
-        //* and the symbol is the last symbol encoded or decoded.  In principle
-        //* this is a fairly simple routine, but a couple of complications make
-        //* things a little messier.  First of all, the given table may not
-        //* already have the symbol defined in its statistics table.  If it
-        //* doesn't, the stats table has to grow and have the new guy added
-        //* to it.  Secondly, the symbols are kept in sorted order by count
-        //* in the table so that the table can be trimmed during the flush
-        //* operation.  When this symbol is incremented, it might have to be moved
-        //* up to reflect its new rank.  Finally, since the counters are only
-        //* bytes, if the count reaches 255, the table absolutely must be rescaled
-        //* to get the counts back down to a reasonable level.
+        /// <summary>
+        /// This routine is called to update the count for a particular symbol
+        /// in a particular table.  The table is one of the current contexts,
+        /// and the symbol is the last symbol encoded or decoded.  In principle
+        /// this is a fairly simple routine, but a couple of complications make
+        /// things a little messier.  First of all, the given table may not
+        /// already have the symbol defined in its statistics table.  If it
+        /// doesn't, the stats table has to grow and have the new guy added
+        /// to it.  Secondly, the symbols are kept in sorted order by count
+        /// in the table so that the table can be trimmed during the flush
+        /// operation.  When this symbol is incremented, it might have to be moved
+        /// up to reflect its new rank.  Finally, since the counters are only
+        /// bytes, if the count reaches 255, the table absolutely must be rescaled
+        /// to get the counts back down to a reasonable level.
+        /// </summary>
+        /// <param name="symbol">Byte value to update in the <c>Context</c>.</param>
         public void Update(byte symbol) => Update(new Stat(symbol, 0));
 
-        public void Decrement(Stat stat)
-        {
-            Int32 index;
-
-            index = _stats.IndexOf(stat);
-            if (index >= 0)
-            {
-                _stats[index].Count--;
-            }
-        }
-
-        //* This routine has the job of creating a cumulative totals table for
-        //* a given context.  The cumulative low and high for symbol c are going to
-        //* be stored in totals[c+2] and totals[c+1].  Locations 0 and 1 are
-        //* reserved for the special ESCAPE symbol.  The ESCAPE symbol
-        //* count is calculated dynamically, and changes based on what the
-        //* current context looks like.  Note also that this routine ignores
-        //* any counts for symbols that have already shown up in the scoreboard,
-        //* and it adds all new symbols found here to the scoreboard.  This
-        //* allows us to exclude counts of symbols that have already appeared in
-        //*  higher order contexts, improving compression quite a bit.
+        /// <summary>
+        /// This routine has the job of creating a cumulative totals table for
+        /// a given context.  The cumulative low and high for symbol c are going to
+        /// be stored in totals[c+2] and totals[c+1].  Locations 0 and 1 are
+        /// reserved for the special ESCAPE symbol.  The ESCAPE symbol
+        /// count is calculated dynamically, and changes based on what the
+        /// current context looks like.  Note also that this routine ignores
+        /// any counts for symbols that have already shown up in the scoreboard,
+        /// and it adds all new symbols found here to the scoreboard.  This
+        /// allows us to exclude counts of symbols that have already appeared in
+        ///  higher order contexts, improving compression quite a bit.
+        /// </summary>
+        /// <param name="scoreboard">Byte array to update during totalize operation.</param>
+        /// <returns><c>UInt32[]</c> array of values totalizing the stats in the context.</returns>
         public UInt32[] Totalize(byte[] scoreboard)
         {
             UInt32[] result = new UInt32[258];
@@ -229,11 +238,17 @@ namespace ArithmeticCoder
             return result;
         }
 
+        /// <summary>
+        /// Method to set roll back check point.
+        /// </summary>
         public void SetRollBackCheckPoint()
         {
             _keepRollBack = true;
         }
 
+        /// <summary>
+        /// Method to roll back to the check point.
+        /// </summary>
         public void RollBack()
         {
             RollBackItem? item = null;
@@ -257,6 +272,11 @@ namespace ArithmeticCoder
             }
         }
 
+        /// <summary>
+        /// Property to get and set the Stats list. Only intended for use by JSON serialization and deserialization.
+        /// </summary>
+        /// <param name="value"><c>List<Stat></c> list to set stats to.</param>
+        /// <returns><c>List<Stat></c> list of the stats.</returns>
         [JsonInclude]
         public List<Stat> Stats
         {  
@@ -270,9 +290,19 @@ namespace ArithmeticCoder
             }
         }
 
+        /// <summary>
+        /// Property to get the <c>Order</c> type of the context.
+        /// </summary>
+        /// <returns><c>Order</c> value of the context.</returns>
         [JsonIgnore]
         public Order Order => _order;
 
+        /// <summary>
+        /// Helper method to swap two stats used in update and roll back 
+        /// </summary>
+        /// <param name="index1">Index of the first stat.</param>
+        /// <param name="index2">Index of the second stat.</param>
+        /// <returns></returns>
         private void SwapStats(Int32 index1, Int32 index2)
         {
             Stat index1Stat = _stats[index1];
@@ -284,6 +314,10 @@ namespace ArithmeticCoder
             }
         }
 
+        /// <summary>
+        /// Helper method to undo updates as part of a roll back operation.
+        /// </summary>
+        /// <param name="update"><c>RollBackUpdate</c> object containing the information need to roll back.</param>
         private void UndoUpdate(RollBackUpdate? update)
         {
             if(update != null)
@@ -307,6 +341,11 @@ namespace ArithmeticCoder
             }
         }
 
+        /// <summary>
+        /// Helper method used by update to get the swap index when sorting stats list.
+        /// </summary>
+        /// <param name="startIndex"><c>Int32</c> index to start at.</param>
+        /// <returns><c>Int32</c> value of the index that the stat should be moved to.</returns>
         private Int32 FindSwapIndex(Int32 startIndex)
         {
             int result = startIndex;
@@ -319,17 +358,20 @@ namespace ArithmeticCoder
             return result;
         }
 
-        //* Rescaling the table needs to be done for one of three reasons.
-        //* First, if the maximum count for the table has exceeded 16383, it
-        //* means that arithmetic coding using 16 and 32 bit registers might
-        //* no longer work.  Secondly, if an individual symbol count has
-        //* reached 255, it will no longer fit in a byte.  Third, if the
-        //* current model isn't compressing well, the compressor program may
-        //* want to rescale all tables in order to give more weight to newer
-        //* statistics.  All this routine does is divide each count by 2.
-        //* If any counts drop to 0, the counters can be removed from the
-        //* stats table, but only if this is a leaf context.  Otherwise, we
-        //* might cut a link to a higher order table.
+        /// <summary>
+        /// Rescaling the table needs to be done for one of three reasons.
+        /// First, if the maximum count for the table has exceeded 16383, it
+        /// means that arithmetic coding using 16 and 32 bit registers might
+        /// no longer work.  Secondly, if an individual symbol count has
+        /// reached 255, it will no longer fit in a byte.  Third, if the
+        /// current model isn't compressing well, the compressor program may
+        /// want to rescale all tables in order to give more weight to newer
+        /// statistics.  All this routine does is divide each count by 2.
+        /// If any counts drop to 0, the counters can be removed from the
+        /// stats table, but only if this is a leaf context.  Otherwise, we
+        /// might cut a link to a higher order table.
+        /// </summary>
+        /// <param name="savedAlready">True, if the roll back of the rescale has already been recorded in the roll back log.</param>
         public void Rescale(bool savedAlready = false)
         {
             RollBackItem? rollBackItem = null;

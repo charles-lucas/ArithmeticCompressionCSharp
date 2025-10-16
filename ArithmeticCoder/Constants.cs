@@ -1,5 +1,8 @@
 ﻿namespace ArithmeticCoder
 {
+    /// <summary>
+    /// Class <c>Constants</c> used to hold constant values for the ArithmeticCoder.
+    /// </summary>
     internal static class Constants
     {
         public const UInt32 MAXIMUM_SCALE = 16383;
