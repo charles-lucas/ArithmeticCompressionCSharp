@@ -1,17 +1,32 @@
 ﻿namespace ArithmeticCoder
 {
+    /// <summary>
+    /// Class <c>WriteObject</c> wraps the actual source to write from to allow for interchangeablity.
+    /// </summary>
     internal class WriterObject
     {
+        /// <summary>
+        /// Constructor for <c>WriterObject</c> that uses the provided <c>BinaryWrite</c> to write data.
+        /// </summary>
+        /// <param name="writer"><c>BinaryWriter</c> used by the object to write data.</param>
         public WriterObject(BinaryWriter writer)
         {
             _writer = writer;
         }
 
+        /// <summary>
+        /// Constructor for <c>WriterObject</c> that uses the provided <c>List<byte></c> to write data.
+        /// </summary>
+        /// <param name="output"><c>List<byte></c> used by the object to write data.</param>
         public WriterObject(List<byte> output)
         {
             _outputList = output;
         }
 
+        /// <summary>
+        /// Method used to write a byte.
+        /// </summary>
+        /// <param name="bite">Byte to be writen.</param>
         public void Write(byte bite)
         {
             if (_writer != null)
@@ -24,6 +39,9 @@
             }
         }
 
+        /// <summary>
+        /// Method to flush the <c>WriterObject</c>.
+        /// </summary>
         public void Flush()
         {
             if (_writer != null)
@@ -32,6 +50,10 @@
             }
         }
 
+        /// <summary>
+        /// Property to get the length of the output in bytes.
+        /// </summary>
+        /// <returns><c>Int64</c> value that represents the output size in bytes.</returns>
         public Int64 Length
         {
             get
@@ -54,8 +76,15 @@
         private List<byte>? _outputList = null;
     }
 
+    /// <summary>
+    /// Class to write bits to an output source.
+    /// </summary>
     internal class BitStreamWriter
     {
+        /// <summary>
+        /// Constructor for <c>BitStreamWriter</c> which writes data to provided <c>BinaryWriter</c>.
+        /// </summary>
+        /// <param name="output"><c>BinaryWriter</c> which bits will be writen to.</param>
         public BitStreamWriter(BinaryWriter output)
         {
             _rack = 0x00;
@@ -64,6 +93,10 @@
             _rollBackActions = new Stack<RollBackItem>();
         }
 
+        /// <summary>
+        /// Constructor for <c>BitStreamWriter</c> which writes data to provided <c>List<byte></c>.
+        /// </summary>
+        /// <param name="output"><c>List<byte></c> which bits will be writen to.</param>>
         public BitStreamWriter(List<byte> output)
         {
             _rack = 0x00;
@@ -72,6 +105,11 @@
             _rollBackActions = new Stack<RollBackItem>();
         }
 
+        /// <summary>
+        /// Method to write a bit.
+        /// </summary>
+        /// <param name="bit">Bit to write to the output.</param>
+        /// <returns><c>Int32</c> number of bits to the output source.</returns>
         public Int32 WriteBit(bool bit)
         {
             Int32 bitCount = 0;
@@ -99,6 +137,12 @@
             return bitCount;
         }
 
+        /// <summary>
+        /// Method to write a bit.
+        /// </summary>
+        /// <param name="bit">Bit to write to the output.</param>
+        /// <param name="output">Override output source, to use instead of objects output source.</param>
+        /// <returns><c>Int32</c> number of bits to the output source.</returns>
         public Int32 WriteBit(bool bit, List<byte> output)
         {
             Int32 bitCount = 0;
@@ -126,6 +170,11 @@
             return bitCount;
         }
 
+        /// <summary>
+        /// Method to write out multiple bits.
+        /// </summary>
+        /// <param name="code"><c>UInt64</c> value that contains the bits to write out.</param>
+        /// <param name="count">Number of bits to write out.</param>
         public void WriteBits(UInt64 code, Int32 count)
         {
             UInt64 mask = (UInt64)(1 << (count - 1));
@@ -148,6 +197,12 @@
             }
         }
 
+        /// <summary>
+        /// Method to write out multiple bits.
+        /// </summary>
+        /// <param name="code"><c>UInt64</c> value that contains the bits to write out.</param>
+        /// <param name="count">Number of bits to write out.</param>
+        /// <param name="output">Override output source, to use instead of objects output source.</param>
         public void WriteBits(UInt64 code, Int32 count, List<byte> output)
         {
             UInt64 mask = (UInt64)(1 << (count - 1));
@@ -170,6 +225,9 @@
             }
         }
 
+        /// <summary>
+        /// Method to flush the <c>BitStreamWriter</c> output stream.
+        /// </summary>
         public void Flush()
         {
             if(_mask != 0x80)
@@ -180,6 +238,10 @@
             _output.Flush();
         }
 
+        /// <summary>
+        /// Method to flush the <c>BitStreamWriter</c> output stream.
+        /// </summary>
+        /// <param name="output">Override output source, to use instead of objects output source.</param>
         public void Flush(List<byte> output)
         {
             if (_mask != 0x80)
@@ -190,18 +252,17 @@
             _mask = 0x80;
         }
 
-        public void Flush(byte bite)
-        {
-            _output.Write(bite);
-            _output.Flush();
-        }
-
+        /// <summary>
+        /// Method to set a roll back check point.
+        /// </summary>
         public void SetRollBackCheckPoint()
         {
-            //_keepRollBack = true;
             _rollBackActions.Push(new RollBackBitWriter(_rack, _mask));
         }
 
+        /// <summary>
+        /// Method to roll back changes to roll back checkpoint.
+        /// </summary>
         public void RollBack()
         {
             RollBackItem? item;
@@ -219,9 +280,12 @@
                     }
                 }
             } while (_rollBackActions.Count > 0);
-            //_keepRollBack = false;
         }
 
+        /// <summary>
+        /// Property to get the length of the output stream.
+        /// </summary>
+        /// <returns><c>Int64</c> value that represents the length of the output in bytes.</returns>
         public Int64 Length
         {
             get
@@ -231,19 +295,25 @@
             }
         }
 
+        /// <summary>
+        /// Method used to write byte to output stream.
+        /// </summary>
+        /// <param name="bite">Byte to be writn to ouput stream.</param>
         public void WriteByte(byte bite)
         {
             _output.Write(bite);
             CompressionTracker.Instance.IncrementOutput();
         }
 
+        /// <summary>
+        /// Property to get the Mask.
+        /// </summary>
+        /// <returns><c>byte</c> that is the current mask.</returns>
         public byte Mask => _mask;
-        public byte Rack => _rack;
 
         private byte _rack;
         private byte _mask;
         private WriterObject _output;
-        //private bool _keepRollBack;
         private Stack<RollBackItem> _rollBackActions;
     }
 }
