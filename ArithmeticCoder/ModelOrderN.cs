@@ -3,9 +3,14 @@ using System.Text.Json.Serialization;
 
 namespace ArithmeticCoder
 {
+    /// <summary>
+    /// Class <c>ModelOrderN<c/> represents an order N model for use in arithmetic coding.
+    /// </summary>
     internal class ModelOrderN
     {
-        //Ctor for JSON 
+        /// <summary>
+        /// Constructor used for JSON serialization and deserialization.
+        /// </summary>
         public ModelOrderN()
         {
             _compatabilityMode = false;
@@ -35,6 +40,11 @@ namespace ArithmeticCoder
             _rollBackContexts = new Stack<Context>();
         }
 
+        /// <summary>
+        /// Constructor for <c>ModelOrderN</c>
+        /// </summary>
+        /// <param name="maxOrder">Maximum order to use in the model.<param>
+        /// <param name="compatability">True, for refernece implemetation compatability(The Compression Book).<param>
         public ModelOrderN(UInt32 maxOrder, bool compatability = false)
         {
             _compatabilityMode = compatability;
@@ -84,24 +94,30 @@ namespace ArithmeticCoder
             }
         }
 
-        //* This routine is called when a given symbol needs to be encoded.
-        //* It is the job of this routine to find the symbol in the context
-        //* table associated with the current table, and return the low and
-        //* high counts associated with that symbol, as well as the scale.
-        //* Finding the table is simple.  Unfortunately, once I find the table,
-        //* I have to build the table of cumulative counts, which is
-        //* expensive, and is done elsewhere.  If the symbol is found in the
-        //* table, the appropriate counts are returned.  If the symbol is
-        //* not found, the ESCAPE symbol probabilities are returned, and
-        //* the current order is reduced.  Note also the kludge to support
-        //* the order -2 character set, which consists of negative numbers
-        //* instead of unsigned chars.  This insures that no match will ever
-        //* be found for the EOF or FLUSH symbols in  any "normal" table.
+        /// <summary>
+        /// This routine is called when a given symbol needs to be encoded.
+        /// It is the job of this routine to find the symbol in the context
+        /// table associated with the current table, and return the low and
+        /// high counts associated with that symbol, as well as the scale.
+        /// Finding the table is simple.  Unfortunately, once I find the table,
+        /// I have to build the table of cumulative counts, which is
+        /// expensive, and is done elsewhere.  If the symbol is found in the
+        /// table, the appropriate counts are returned.  If the symbol is
+        /// not found, the ESCAPE symbol probabilities are returned, and
+        /// the current order is reduced.  Note also the kludge to support
+        /// the order -2 character set, which consists of negative numbers
+        /// instead of unsigned chars.  This insures that no match will ever
+        /// be found for the EOF, EndOfPacket or FLUSH symbols in  any "normal" table.
+        /// </summary>
+        /// <param name="character">The chararacter to search for in the table.<param>
+        /// <param name="symbol">The <c>Symbol</c> to update high and low courts.</param>
+        /// <returns>False, if the sysmbol was found.</returns>
         public bool ConvertIntToSymbol(Int32 character, Symbol symbol)
         {
             int index;
             Context table = GetCurrentContext();
             UInt32[] totals;
+            bool result = true;
 
             totals = table.Totalize(_scoreboard);
 
@@ -118,18 +134,24 @@ namespace ArithmeticCoder
                 {
                     symbol.LowCount = totals[index + 2];
                     symbol.HighCount = totals[index + 1];
-                    return false;
+                    result = false;
                 }
             }
 
-            symbol.LowCount = totals[1];
-            symbol.HighCount = totals[0];
+            if(result)
+            {
+                symbol.LowCount = totals[1];
+                symbol.HighCount = totals[0];
+                DecrementOrder();
+            }
 
-            DecrementOrder();
-
-            return true;
+            return result;
         }
 
+        /// <summary>
+        /// Method to export the model to JSON.
+        /// </summary>
+        /// <param name="output">Stream used to export model.<param>
         public void Export(Stream output)
         {
             string json;
@@ -149,24 +171,22 @@ namespace ArithmeticCoder
             outStream.Flush();
         }
 
-        public void SetMaxOrder()
-        {
-            foreach (ContextKey key in _contexts.Keys)
-            {
-                key.MaxLength = _maxOrder;
-            }
-        }
-
+        /// <summary>
+        /// Method used to set last context.
+        /// </summary>
         public void SetLastContext()
         {
             _lastContext = _contextKey;
         }
 
-        //* This routine is called when decoding an arithmetic number.  In
-        //* order to decode the present symbol, the current scale in the
-        //* model must be determined.  This requires looking up the current
-        //* table, then building the totals table.  Once that is done, the
-        //* cumulative total table has the symbol scale at element 0.
+        /// <summary>
+        /// This routine is called when decoding an arithmetic number.  In
+        /// order to decode the present symbol, the current scale in the
+        /// model must be determined.  This requires looking up the current
+        /// table, then building the totals table.  Once that is done, the
+        /// cumulative total table has the symbol scale at element 0.
+        /// </summary>
+        /// <param name="symbol"><c>Symbol</c> whos scale to set.<param>
         public void GetSymbolScale(Symbol symbol)
         {
             Context table = GetCurrentContext();
@@ -175,6 +195,16 @@ namespace ArithmeticCoder
             symbol.Scale = _totals[0];
         }
 
+        /// <summary>
+        /// During decompression, we have to search through the table until
+        /// we find the symbol that straddles the "count" parameter. When
+        /// it is found, it is returned. The reason for also setting the
+        /// high count and low count is so that symbol can be properly removed
+        /// from the arithmetic coded input.
+        /// </summary>
+        /// <param name="count">The value to search for in the totals.<param>
+        /// <param name="symbol"><c>Symbol</c> to set high and low counts.</param>
+        /// <returns><c>Int32</c> the result of the conversion.</returns>
         public Int32 ConvertSymbolToInt(Int32 count, Symbol symbol)
         {
             int character;
@@ -206,6 +236,9 @@ namespace ArithmeticCoder
             return result;
         }
 
+        /// <summary>
+        /// Method to decrement the current order.
+        /// </summary>
         protected virtual void DecrementOrder()
         {
             if (_order == Order.Model)
@@ -245,21 +278,25 @@ namespace ArithmeticCoder
             }
         }
 
-        //* This routine is called to flush the whole model, which it does
-        //* by calling the recursive flush routine starting at the order 0
-        //* table.
+        /// <summary>
+        /// This routine is called to flush the whole model, which it does
+        /// by calling the recursive flush routine starting at the order 0
+        /// table.
+        /// </summary>
         public virtual void Flush()
         {
-            //XXX FIXME should flush entire model
-            Flush(_contextKey);
+            Flush(new ContextKey(_maxOrder));
         }
 
-        //* This routine is called when the entire model is to be flushed.
-        //* This is done in an attempt to improve the compression ratio by
-        //* giving greater weight to upcoming statistics.  This routine
-        //* starts at the given table, and recursively calls itself to
-        //* rescale every table in its list of links.  The table itself
-        //* is then rescaled.
+        /// <summary>
+        ///  This routine is called when the entire model is to be flushed.
+        /// This is done in an attempt to improve the compression ratio by
+        /// giving greater weight to upcoming statistics.  This routine
+        /// starts at the given table, and recursively calls itself to
+        /// rescale every table in its list of links.  The table itself
+        /// is then rescaled.
+        /// </summary>
+        /// <param name="contextKey">The <c>Context</c> to flush.<param>
         public virtual void Flush(ContextKey contextKey)
         {
             ContextKey key;
@@ -282,16 +319,19 @@ namespace ArithmeticCoder
             }
         }
 
-        //* This routine is called to increment the counts for the current
-        //* contexts.  It is called after a character has been encoded or
-        //* decoded.  All it does is call update_table for each of the
-        //* current contexts, which does the work of incrementing the count.
-        //* This particular version of update_model() practices update exclusion,
-        //* which means that if lower order models weren't used to encode
-        //* or decode the character, they don't get their counts updated.
-        //* This seems to improve compression performance quite a bit.
-        //* To disable update exclusion, the loop would be changed to run
-        //* from 0 to max_order, instead of current_order to max_order.
+        /// <summary>
+        /// This routine is called to increment the counts for the current
+        /// contexts.  It is called after a character has been encoded or
+        /// decoded.  All it does is call update_table for each of the
+        /// current contexts, which does the work of incrementing the count.
+        /// This particular version of update_model() practices update exclusion,
+        /// which means that if lower order models weren't used to encode
+        /// or decode the character, they don't get their counts updated.
+        /// This seems to improve compression performance quite a bit.
+        /// To disable update exclusion, the loop would be changed to run
+        /// from 0 to max_order, instead of current_order to max_order.
+        /// </summary>
+        /// <param name="character">The symbol to be updated.<param>
         public virtual void Update(Int32 character)
         {
             if (character >= 0)
@@ -331,18 +371,21 @@ namespace ArithmeticCoder
             }
         }
 
-        //* After the model has been updated for a new character, this routine
-        //* is called to "shift" into the new context.  For example, if the
-        //* last context was "ABC", and the symbol 'D' had just been processed,
-        //* this routine would want to update the context pointers to that
-        //* context[1]=="D", contexts[2]=="CD" and contexts[3]=="BCD".  The
-        //* potential problem is that some of these tables may not exist.
-        //* The way this is handled is by the shift_to_next_context routine.
-        //* It is passed a pointer to the "ABC" context, along with the symbol
-        //* 'D', and its job is to return a pointer to "BCD".  Once we have
-        //* "BCD", we can follow the lesser context pointers in order to get
-        //* the pointers to "CD" and "C".  The hard work was done in
-        //* shift_to_context().
+        /// <summary>
+        /// After the model has been updated for a new character, this routine
+        /// is called to "shift" into the new context.  For example, if the
+        /// last context was "ABC", and the symbol 'D' had just been processed,
+        /// this routine would want to update the context pointers to that
+        /// context[1]=="D", contexts[2]=="CD" and contexts[3]=="BCD".  The
+        /// potential problem is that some of these tables may not exist.
+        /// The way this is handled is by the shift_to_next_context routine.
+        /// It is passed a pointer to the "ABC" context, along with the symbol
+        /// 'D', and its job is to return a pointer to "BCD".  Once we have
+        /// "BCD", we can follow the lesser context pointers in order to get
+        /// the pointers to "CD" and "C".  The hard work was done in
+        /// shift_to_context().
+        /// </summary>
+        /// <param name="character">The symbol to add to model.<param>
         public virtual void AddSymbol(Int32 character)
         {
             if (character >= 0 && _order == Order.Model)
@@ -351,19 +394,23 @@ namespace ArithmeticCoder
             }
         }
 
-        //* This routine is called during decoding.  It is given a count that
-        //* came out of the arithmetic decoder, and has to find the symbol that
-        //* matches the count.  The cumulative totals are already stored in the
-        //* totals[] table, from the call to get_symbol-scale, so this routine
-        //* just has to look through that table.  Once the match is found,
-        //* the appropriate character is returned to the caller.  Two possible
-        //* complications.  First, the character might be the ESCAPE character,
-        //* in which case the current_order has to be decremented.  The other
-        //* complication.  First, the character might be the ESCAPE character,
-        //* in which case the current_order has to be decremented.  The other
-        //* complication is that the order might be -2, in which case we return
-        //* the negative of the symbol so it isn't confused with a normal
-        //* symbol.
+        /// <summary>
+        /// This routine is called during decoding.  It is given a count that
+        /// came out of the arithmetic decoder, and has to find the symbol that
+        /// matches the count.  The cumulative totals are already stored in the
+        /// totals[] table, from the call to get_symbol-scale, so this routine
+        /// just has to look through that table.  Once the match is found,
+        /// the appropriate character is returned to the caller.  Two possible
+        /// complications.  First, the character might be the ESCAPE character,
+        /// in which case the current_order has to be decremented.  The other
+        /// complication.  First, the character might be the ESCAPE character,
+        /// in which case the current_order has to be decremented.  The other
+        /// complication is that the order might be -2, in which case we return
+        /// the negative of the symbol so it isn't confused with a normal
+        /// symbol.
+        /// </summary>
+        /// <param name="symbol">The <c>Symbol</c> to be converted.<param>
+        /// <returns><c>Int32</c> the value after conversion.</returns>
         public Int32 ConvertSymbolToInt(Symbol symbol)
         {
             Int32 character;
@@ -394,6 +441,9 @@ namespace ArithmeticCoder
             return result;
         }
 
+        /// <summary>
+        /// Method to set roll back check point
+        /// </summary>
         public void SetRollBackCheckPoint()
         {
             byte[] scoreboard = new byte[_scoreboard.Length];
@@ -403,6 +453,9 @@ namespace ArithmeticCoder
             _keepRollBack = true;
         }
 
+        /// <summary>
+        /// Method to roll back to a check point.
+        /// </summary>
         public void RollBack()
         {
             RollBackItem? item = null;
@@ -441,6 +494,11 @@ namespace ArithmeticCoder
             _keepRollBack = false;
         }
 
+        /// <summary>
+        /// Method to compute and output statistics about dictionary collisions.
+        /// </summary>
+        /// <param name="stream">Stream to write dictionary collisions statistics.<param>
+        /// <returns><c>UInt128</c> total number of dictionary collisions.</returns>
         public UInt128 DictionaryStats(StreamWriter stream)
         {
             Dictionary<ContextKey, UInt64> collisions = new Dictionary<ContextKey, UInt64>();
@@ -473,6 +531,10 @@ namespace ArithmeticCoder
             return totalCollisions;
         }
 
+        /// <summary>
+        /// Method to retrive the current <c>Context</c>.
+        /// </summary>
+        /// <returns><c>Context</c> the current context object.</returns>
         private Context GetCurrentContext()
         {
             Context table;
@@ -492,6 +554,11 @@ namespace ArithmeticCoder
             return table;
         }
 
+        /// <summary>
+        /// Property used for JSON serialization and deserialization to get and set the maximum order.
+        /// </summary>
+        /// <param name="value">Value to set maximum order.<param>
+        /// <returns><c>UInt32</c> the maximum order of the model.</returns>
         [JsonInclude]
         public UInt32 MaxOrder
         {
@@ -505,6 +572,11 @@ namespace ArithmeticCoder
             }
         }
 
+        /// <summary>
+        /// Property used for JSON serialization and deserialization to get and set the last context.
+        /// </summary>
+        /// <param name="value"><c>ContextKey</c> used to set the last context member.<param>
+        /// <returns><c>ContextKey</c> that is the last context value.</returns>
         [JsonInclude]
         public ContextKey LastContext
         {
@@ -519,6 +591,10 @@ namespace ArithmeticCoder
             }
         }
 
+        /// <summary>
+        /// Used by <c>ArithmeticCompression</c> when deserializing JSON and adding to the context dictionary.
+        /// </summary>
+        /// <returns><c>Dictionary<ContextKey, Context></c> the context dictionary.</returns>
         [JsonIgnore]
         public Dictionary<ContextKey, Context> Contexts
         {
@@ -526,12 +602,14 @@ namespace ArithmeticCoder
             {
                 return _contexts;
             }
-            set
-            {
-                _contexts = value;
-            }
         }
 
+        /// <summary>
+        /// Method to allocate the next context.
+        /// </summary>
+        /// <param name="key"><c>ContextKey</c> the curent context key.<param>
+        /// <param name="character">The new character to add to the current context.</param>
+        /// <returns><c>ContextKey</c> the new context key after the addition of the new character.</returns>
         private ContextKey AllocateNextContext(ContextKey key, byte character)
         {
             ContextKey? lesser = null;
@@ -567,6 +645,9 @@ namespace ArithmeticCoder
             return key;
         }
 
+        /// <summary>
+        /// Method to print the entire model.
+        /// </summary>
         public void Print()
         {
             System.Console.WriteLine("Init");
@@ -582,6 +663,10 @@ namespace ArithmeticCoder
             System.Console.WriteLine("Key:\t{0}\n", _contextKey.ToString());
         }
 
+        /// <summary>
+        /// Method to print the entire dictionary when a character is added.
+        /// </summary>
+        /// <param name="character">The character that was added.<param>
         public void Print(byte character)
         {
             System.Console.WriteLine("Added:\t{0:x2}", character);
@@ -597,6 +682,11 @@ namespace ArithmeticCoder
             System.Console.WriteLine("Key:\t{0}\n", _contextKey.ToString());
         }
 
+        /// <summary>
+        /// Method to sum all of the counts for a context. Used in calculating the "Best" context.
+        /// </summary>
+        /// <param name="key"><c>ContextKey</c> of which to sum counts.<param>
+        /// <returns><c>UInt64</c> the summ of the context and all of its lesser contexts down to order 1.</returns>
         private UInt64 SumContext(ContextKey? key)
         {
             UInt64 result = 0;
@@ -613,6 +703,11 @@ namespace ArithmeticCoder
             return result;
         }
 
+        /// <summary>
+        /// Property to get and set BestKey used for serialization and deserialization of JSON.
+        /// </summary>
+        /// <param name="value">The valur to set the best kay.<param>
+        /// <returns><c>ContextKey</c> that was evaluated to be the best key.</returns>
         [JsonInclude]
         public ContextKey BestKey
         {
@@ -642,6 +737,11 @@ namespace ArithmeticCoder
             }
         }
 
+        /// <summary>
+        /// Property to get and set the compability mode used in serialization and deserialization from JSON. 
+        /// </summary>
+        /// <param name="value">Value to set compability mode.<param>
+        /// <returns>Value of the compability mode.</returns>
         [JsonInclude]
         public bool CompatabilityMode
         { 
