@@ -1,5 +1,8 @@
 ﻿namespace ArithmeticCoder
 {
+    /// <summary>
+    /// Enumeration for managing order
+    /// </summary>
     internal enum Order
     {
         Control = -2,
